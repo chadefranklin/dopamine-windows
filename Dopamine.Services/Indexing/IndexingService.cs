@@ -676,7 +676,7 @@ namespace Dopamine.Services.Indexing
 
         private async Task<string> GetArtworkFromFile(string albumKey)
         {
-            Track track = await this.trackRepository.GetLastModifiedTrackForAlbumKeyAsync(albumKey);
+            Track track = await this.trackRepository.GetEarliestTrackForAlbumKeyAsync(albumKey);
             return await this.cacheService.CacheArtworkAsync(IndexerUtils.GetArtwork(albumKey, new FileMetadata(track.Path)));
         }
 

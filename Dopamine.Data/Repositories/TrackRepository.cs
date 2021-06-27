@@ -690,6 +690,35 @@ namespace Dopamine.Data.Repositories
             return lastModifiedTrack;
         }
 
+        public async Task<Track> GetEarliestTrackForAlbumKeyAsync(string albumKey)
+        {
+            Track earliestTrack = null;
+
+            await Task.Run(() =>
+            {
+                try
+                {
+                    using (var conn = this.factory.GetConnection())
+                    {
+                        try
+                        {
+                            earliestTrack = conn.Table<Track>().Where((t) => t.AlbumKey.Equals(albumKey)).Select((t) => t).OrderBy((t) => t.TrackNumber).FirstOrDefault();
+                        }
+                        catch (Exception ex)
+                        {
+                            LogClient.Error("Could not get the earliest track for the given albumKey. Exception: {0}", ex.Message);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Could not connect to the database. Exception: {0}", ex.Message);
+                }
+            });
+
+            return earliestTrack;
+        }
+
         public async Task DisableNeedsAlbumArtworkIndexingAsync(string albumKey)
         {
             await Task.Run(() =>

@@ -48,6 +48,8 @@ namespace Dopamine.Data.Repositories
 
         Task<Track> GetLastModifiedTrackForAlbumKeyAsync(string albumKey);
 
+        Task<Track> GetEarliestTrackForAlbumKeyAsync(string albumKey);
+
         Task DisableNeedsAlbumArtworkIndexingAsync(string albumKey);
 
         Task DisableNeedsAlbumArtworkIndexingForAllTracksAsync();
