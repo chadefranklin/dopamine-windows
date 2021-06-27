@@ -87,6 +87,8 @@ namespace Dopamine.Services.Entities
 
         public string ArtistName => !string.IsNullOrEmpty(this.Track.Artists) ? DataUtils.GetCommaSeparatedColumnMultiValue(this.Track.Artists) : ResourceUtils.GetString("Language_Unknown_Artist");
 
+        public string ArtistNameNotAlbumArtist => !string.IsNullOrEmpty(this.Track.Artists) ? (this.Track.Artists != this.Track.AlbumArtists ? DataUtils.GetCommaSeparatedColumnMultiValue(this.Track.Artists) : "") : ResourceUtils.GetString("Language_Unknown_Artist");
+
         public string AlbumArtist => this.GetAlbumArtist();
 
         public string Genre => !string.IsNullOrEmpty(this.Track.Genres) ? DataUtils.GetCommaSeparatedColumnMultiValue(this.Track.Genres) : ResourceUtils.GetString("Language_Unknown_Genre");
