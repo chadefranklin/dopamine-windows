@@ -101,9 +101,11 @@ namespace Dopamine.Services.Entities
 
         public string Year => this.Track.Year.HasValueLargerThan(0) ? this.Track.Year.Value.ToString() : string.Empty;
 
-        public string GroupHeader => this.Track.DiscCount.HasValueLargerThan(1) && this.Track.DiscNumber.HasValueLargerThan(0) ? $"{this.Track.AlbumTitle} ({this.Track.DiscNumber})" : this.Track.AlbumTitle;
+        public string GroupHeader => this.CalculatedDiscCount.HasValueLargerThan(1) && this.Track.DiscNumber.HasValueLargerThan(0) ? $"{this.Track.AlbumTitle} ({this.Track.DiscNumber})" : this.Track.AlbumTitle;
 
         public string GroupSubHeader => this.AlbumArtist;
+
+        public long? CalculatedDiscCount;
 
         public string GetAlbumArtist()
         {

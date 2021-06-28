@@ -235,6 +235,51 @@ namespace Dopamine.ViewModels.Common.Base
                 // Order the Tracks
                 List<TrackViewModel> orderedTrackViewModels = await EntityUtils.OrderTracksAsync(tracks, trackOrder);
 
+                // Calculate Disc Count
+                await Task.Run(() =>
+                {
+                    int currentAlbumStartingIndex = 0;
+                    string currentAlbumKey = orderedTrackViewModels[0].Track.AlbumKey;
+                    long highestDisc = 0;
+                    for (int i = 0, count = orderedTrackViewModels.Count; i < count; i++)
+                    {
+                        if (orderedTrackViewModels[i].Track.AlbumKey != currentAlbumKey)
+                        {
+                            for (int j = currentAlbumStartingIndex; j < i; j++)
+                            {
+                                orderedTrackViewModels[j].CalculatedDiscCount = highestDisc;
+                            }
+
+                            highestDisc = 0;
+
+                            currentAlbumStartingIndex = i;
+                            currentAlbumKey = orderedTrackViewModels[i].Track.AlbumKey;
+
+                            highestDisc = Math.Max(highestDisc, orderedTrackViewModels[i].Track.DiscNumber ?? 0);
+
+                            if (i == (count - 1))
+                            {
+                                for (int j = currentAlbumStartingIndex; j < count; j++)
+                                {
+                                    orderedTrackViewModels[j].CalculatedDiscCount = highestDisc;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            highestDisc = Math.Max(highestDisc, orderedTrackViewModels[i].Track.DiscNumber ?? 0);
+
+                            if (i == (count - 1))
+                            {
+                                for (int j = currentAlbumStartingIndex; j < count; j++)
+                                {
+                                    orderedTrackViewModels[j].CalculatedDiscCount = highestDisc;
+                                }
+                            }
+                        }
+                    }
+                });
+
                 // Unbind to improve UI performance
                 this.ClearTracks();
 
