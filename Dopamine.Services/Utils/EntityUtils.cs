@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Unidecode.NET;
 
 namespace Dopamine.Services.Utils
 {
@@ -18,10 +19,16 @@ namespace Dopamine.Services.Utils
             // Trim is required here, otherwise the filter might flip on the space at the beginning (and probably at the end)
             string[] pieces = filter.Trim().Split(Convert.ToChar(" "));
 
-            return pieces.All((s) => 
-            album.AlbumTitle.ToLower().Contains(s.ToLower()) | 
-            album.AlbumArtist.ToLower().Contains(s.ToLower()) | 
-            album.Year.ToString().ToLower().Contains(s.ToLower()));
+            //return pieces.All((s) => 
+            //album.AlbumTitle.ToLower().Contains(s.ToLower()) | 
+            //album.AlbumArtist.ToLower().Contains(s.ToLower()) | 
+            //album.Year.ToString().ToLower().Contains(s.ToLower()));
+            return pieces.All((s) =>
+            album.AlbumTitle.ToLower().Contains(s.ToLower()) |
+            album.AlbumArtist.ToLower().Contains(s.ToLower()) |
+            album.Year.ToString().ToLower().Contains(s.ToLower()) |
+            album.AlbumTitle.Unidecode().ToLower().Contains(s.ToLower()) |
+            album.AlbumArtist.Unidecode().ToLower().Contains(s.ToLower()));
         }
 
         public static bool FilterArtists(ArtistViewModel artist, string filter)
@@ -29,7 +36,9 @@ namespace Dopamine.Services.Utils
             // Trim is required here, otherwise the filter might flip on the space at the beginning (and probably at the end)
             string[] pieces = filter.Trim().Split(Convert.ToChar(" "));
 
-            return pieces.All((s) => artist.ArtistName.ToLower().Contains(s.ToLower()));
+            //return pieces.All((s) => artist.ArtistName.ToLower().Contains(s.ToLower()));
+            return pieces.All((s) => artist.ArtistName.ToLower().Contains(s.ToLower()) |
+            artist.ArtistName.Unidecode().ToLower().Contains(s.ToLower()));
         }
 
         public static bool FilterGenres(GenreViewModel genre, string filter)
@@ -37,7 +46,9 @@ namespace Dopamine.Services.Utils
             // Trim is required here, otherwise the filter might flip on the space at the beginning (and probably at the end)
             string[] pieces = filter.Trim().Split(Convert.ToChar(" "));
 
-            return pieces.All((s) => genre.GenreName.ToLower().Contains(s.ToLower()));
+            //return pieces.All((s) => genre.GenreName.ToLower().Contains(s.ToLower()));
+            return pieces.All((s) => genre.GenreName.ToLower().Contains(s.ToLower()) |
+            genre.GenreName.Unidecode().ToLower().Contains(s.ToLower()));
         }
 
         public static bool FilterTracks(TrackViewModel track, string filter)
@@ -45,12 +56,22 @@ namespace Dopamine.Services.Utils
             // Trim is required here, otherwise the filter might flip on the space at the beginning (and probably at the end)
             string[] pieces = filter.Trim().Split(Convert.ToChar(" "));
 
-            return pieces.All((s) => 
-            track.TrackTitle.ToLower().Contains(s.ToLower()) | 
-            track.ArtistName.ToLower().Contains(s.ToLower()) | 
-            track.AlbumTitle.ToLower().Contains(s.ToLower()) | 
-            track.FileName.ToLower().Contains(s.ToLower()) | 
-            track.Year.ToString().Contains(s.ToLower()));
+            //return pieces.All((s) => 
+            //track.TrackTitle.ToLower().Contains(s.ToLower()) | 
+            //track.ArtistName.ToLower().Contains(s.ToLower()) | 
+            //track.AlbumTitle.ToLower().Contains(s.ToLower()) | 
+            //track.FileName.ToLower().Contains(s.ToLower()) | 
+            //track.Year.ToString().Contains(s.ToLower()));
+            return pieces.All((s) =>
+            track.TrackTitle.ToLower().Contains(s.ToLower()) |
+            track.ArtistName.ToLower().Contains(s.ToLower()) |
+            track.AlbumTitle.ToLower().Contains(s.ToLower()) |
+            track.FileName.ToLower().Contains(s.ToLower()) |
+            track.Year.ToString().Contains(s.ToLower()) |
+            track.TrackTitle.Unidecode().ToLower().Contains(s.ToLower()) |
+            track.ArtistName.Unidecode().ToLower().Contains(s.ToLower()) |
+            track.AlbumTitle.Unidecode().ToLower().Contains(s.ToLower()) |
+            track.FileName.Unidecode().ToLower().Contains(s.ToLower()));
         }
 
         public static async Task<List<TrackViewModel>> OrderTracksAsync(IList<TrackViewModel> tracks, TrackOrder trackOrder)
