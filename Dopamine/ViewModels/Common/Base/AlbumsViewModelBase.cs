@@ -275,6 +275,9 @@ namespace Dopamine.ViewModels.Common.Base
                 case AlbumOrder.ByYearAscending:
                     this.albumOrderText = ResourceUtils.GetString("Language_By_Year_Ascending");
                     break;
+                case AlbumOrder.ByDateLastPlayed:
+                    this.albumOrderText = ResourceUtils.GetString("Language_Last_Played");
+                    break;
                 default:
                     // Cannot happen, but just in case.
                     this.albumOrderText = ResourceUtils.GetString("Language_A_Z");
@@ -358,7 +361,12 @@ namespace Dopamine.ViewModels.Common.Base
             Application.Current.Dispatcher.Invoke(() =>
             {
                 // Populate CollectionViewSource
-                this.AlbumsCvs = new CollectionViewSource { Source = this.Albums };
+                if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
+                {
+                    this.AlbumsCvs = new CollectionViewSource { Source = this.Albums.Where(x => x.DateLastPlayed.HasValue) };
+                } else {
+                    this.AlbumsCvs = new CollectionViewSource { Source = this.Albums };
+                }
                 this.AlbumsCvs.Filter += new FilterEventHandler(AlbumsCvs_Filter);
 
                 // Update count
@@ -544,6 +552,9 @@ namespace Dopamine.ViewModels.Common.Base
                     this.AlbumOrder = AlbumOrder.ByYearDescending;
                     break;
                 case AlbumOrder.ByYearDescending:
+                    this.AlbumOrder = AlbumOrder.ByDateLastPlayed;
+                    break;
+                case AlbumOrder.ByDateLastPlayed:
                     this.AlbumOrder = AlbumOrder.Alphabetical;
                     break;
                 default:

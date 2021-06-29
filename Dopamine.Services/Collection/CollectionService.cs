@@ -273,6 +273,9 @@ namespace Dopamine.Services.Collection
                     case AlbumOrder.ByYearDescending:
                         orderedAlbums = albums.OrderByDescending((a) => a.SortYear).ToList();
                         break;
+                    case AlbumOrder.ByDateLastPlayed:
+                        orderedAlbums = albums.OrderByDescending((a) => a.DateLastPlayed).ToList();
+                        break;
                     default:
                         // Alphabetical
                         orderedAlbums = albums.OrderBy((a) => FormatUtils.GetSortableString(a.AlbumTitle)).ToList();

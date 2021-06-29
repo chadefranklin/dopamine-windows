@@ -18,6 +18,8 @@
 
         public long? DateAdded { get; set; }
 
+        public long? DateLastPlayed { get; set; }
+
         public static AlbumData CreateDefault()
         {
             return new AlbumData()
@@ -29,7 +31,8 @@
                 AlbumKey = string.Empty,
                 Year = 0,
                 DateFileCreated = 0,
-                DateAdded = 0
+                DateAdded = 0,
+                DateLastPlayed = 0
             };
         }
     }

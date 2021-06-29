@@ -40,7 +40,8 @@ namespace Dopamine.Data.Repositories
                      MAX(t.Artists) as Artists,
                      MAX(t.Year) AS Year, 
                      MAX(t.DateFileCreated) AS DateFileCreated, 
-                     MAX(t.DateAdded) AS DateAdded";
+                     MAX(t.DateAdded) AS DateAdded,
+                     MAX(t.DateLastPlayed) AS DateLastPlayed";
         }
 
         private string SelectAllAlbumDataQuery()
