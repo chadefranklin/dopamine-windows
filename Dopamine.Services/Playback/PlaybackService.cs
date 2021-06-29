@@ -78,6 +78,14 @@ namespace Dopamine.Services.Playback
 
         private AudioDevice audioDevice;
 
+        private System.Timers.Timer updatePlaybackCountersTimer = new System.Timers.Timer();
+        private int updatePlaybackCountersTimeoutSeconds = 10;
+        private System.Diagnostics.Stopwatch updatePlaybackCountersStopwatch = new System.Diagnostics.Stopwatch();
+        private double updatePlaybackCountersTimerTimeRemainingAfterPause;
+        private bool updatedPlaybackCounters;
+
+
+
         public bool IsSavingQueuedTracks => this.isSavingQueuedTracks;
 
         public bool IsSavingPlaybackCounters => this.isSavingPLaybackCounters;
@@ -302,6 +310,9 @@ namespace Dopamine.Services.Playback
 
             this.savePlaybackCountersTimer.Interval = TimeSpan.FromSeconds(this.savePlaybackCountersTimeoutSeconds).TotalMilliseconds;
             this.savePlaybackCountersTimer.Elapsed += new ElapsedEventHandler(this.SavePlaybackCountersHandler);
+
+            this.updatePlaybackCountersTimer.Interval = TimeSpan.FromSeconds(this.updatePlaybackCountersTimeoutSeconds).TotalMilliseconds;
+            this.updatePlaybackCountersTimer.Elapsed += new ElapsedEventHandler(this.UpdatePlaybackCountersHandler);
 
             this.Initialize();
         }
@@ -640,6 +651,9 @@ namespace Dopamine.Services.Playback
             this.progressTimer.Stop();
             this.Progress = 0.0;
             this.PlaybackStopped(this, new EventArgs());
+
+            this.updatePlaybackCountersTimer.Stop();
+            this.updatePlaybackCountersStopwatch.Stop();
         }
 
         public async Task PlayNextAsync()
@@ -653,7 +667,8 @@ namespace Dopamine.Services.Playback
                     int currentTime = this.GetCurrentTime.Seconds;
                     int totalTime = this.GetTotalTime.Seconds;
 
-                    if (currentTime <= 10)
+                    //if (currentTime <= 10)
+                    if (updatedPlaybackCounters)
                     {
                         // Increase SkipCount
                         await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, false, true);
@@ -943,6 +958,15 @@ namespace Dopamine.Services.Playback
             await this.SavePlaybackCountersAsync();
         }
 
+        private async void UpdatePlaybackCountersHandler(object sender, ElapsedEventArgs e) // song has played for 10 seconds
+        {
+            this.updatePlaybackCountersTimer.Stop();
+            this.updatePlaybackCountersStopwatch.Stop();
+
+            await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false); // Increase PlayCount
+            updatedPlaybackCounters = true;
+        }
+
         private async Task UpdatePlaybackCountersAsync(string path, bool incrementPlayCount, bool incrementSkipCount)
         {
 
@@ -998,6 +1022,13 @@ namespace Dopamine.Services.Playback
                 {
                     await Task.Run(() => this.player.Pause());
                     this.PlaybackPaused(this, new PlaybackPausedEventArgs() { IsSilent = isSilent });
+
+                    if (!updatedPlaybackCounters)
+                    {
+                        this.updatePlaybackCountersTimer.Stop();
+                        this.updatePlaybackCountersStopwatch.Stop();
+                        updatePlaybackCountersTimerTimeRemainingAfterPause = updatePlaybackCountersTimer.Interval - updatePlaybackCountersStopwatch.Elapsed.TotalMilliseconds;
+                    }
                 }
             }
             catch (Exception ex)
@@ -1022,6 +1053,13 @@ namespace Dopamine.Services.Playback
                     else
                     {
                         this.PlaybackStopped(this, new EventArgs());
+                    }
+
+                    if (!updatedPlaybackCounters) {
+                        this.updatePlaybackCountersTimer.Interval = updatePlaybackCountersTimerTimeRemainingAfterPause;
+                        updatePlaybackCountersTimerTimeRemainingAfterPause = 0;
+                        this.updatePlaybackCountersTimer.Start();
+                        this.updatePlaybackCountersStopwatch.Restart();
                     }
                 }
             }
@@ -1079,6 +1117,11 @@ namespace Dopamine.Services.Playback
 
             // Start reporting progress
             this.progressTimer.Start();
+
+            updatedPlaybackCounters = false;
+            this.updatePlaybackCountersTimer.Interval = TimeSpan.FromSeconds(this.updatePlaybackCountersTimeoutSeconds).TotalMilliseconds;
+            this.updatePlaybackCountersTimer.Start(); // don't think i need to stop first...
+            this.updatePlaybackCountersStopwatch.Restart();
 
             // Hook up the Stopped event
             this.player.PlaybackInterrupted += this.PlaybackInterruptedHandler;
@@ -1238,7 +1281,11 @@ namespace Dopamine.Services.Playback
             this.context.Post(new SendOrPostCallback(async (state) =>
             {
                 LogClient.Info("Track finished: {0}", this.CurrentTrack.Path);
-                await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false); // Increase PlayCount
+                //await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false); // Increase PlayCount
+                if (!updatedPlaybackCounters)
+                {
+                    await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false); // Increase PlayCount
+                }
                 await this.TryPlayNextAsync(false);
             }), null);
         }
