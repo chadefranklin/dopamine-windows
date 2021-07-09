@@ -235,47 +235,30 @@ namespace Dopamine.ViewModels.Common.Base
                 // Order the Tracks
                 List<TrackViewModel> orderedTrackViewModels = await EntityUtils.OrderTracksAsync(tracks, trackOrder);
 
-                // Calculate Disc Count
-                await Task.Run(() =>
+                // Calculate Disc Count & apply Album to Tracks
+                await Task.Run(async () =>
                 {
-                    int currentAlbumStartingIndex = 0;
-                    string currentAlbumKey = orderedTrackViewModels[0].Track.AlbumKey;
-                    long highestDisc = 0;
+                    Dictionary<string, long?> albumKeyToCalculatedDiscCount = new Dictionary<string, long?>();
+
                     for (int i = 0, count = orderedTrackViewModels.Count; i < count; i++)
                     {
-                        if (orderedTrackViewModels[i].Track.AlbumKey != currentAlbumKey)
+                        string albumKey = orderedTrackViewModels[i].Track.AlbumKey;
+                        if (albumKeyToCalculatedDiscCount.ContainsKey(albumKey))
                         {
-                            for (int j = currentAlbumStartingIndex; j < i; j++)
-                            {
-                                orderedTrackViewModels[j].CalculatedDiscCount = highestDisc;
-                            }
-
-                            highestDisc = 0;
-
-                            currentAlbumStartingIndex = i;
-                            currentAlbumKey = orderedTrackViewModels[i].Track.AlbumKey;
-
-                            highestDisc = Math.Max(highestDisc, orderedTrackViewModels[i].Track.DiscNumber ?? 0);
-
-                            if (i == (count - 1))
-                            {
-                                for (int j = currentAlbumStartingIndex; j < count; j++)
-                                {
-                                    orderedTrackViewModels[j].CalculatedDiscCount = highestDisc;
-                                }
+                            albumKeyToCalculatedDiscCount[albumKey] = Math.Max(albumKeyToCalculatedDiscCount[albumKey] ?? 0, orderedTrackViewModels[i].Track.DiscNumber ?? 0);
+                        } else
+                        {
+                            if (albumKey != string.Empty) {
+                                albumKeyToCalculatedDiscCount.Add(albumKey, orderedTrackViewModels[i].Track.DiscNumber ?? 0);
                             }
                         }
-                        else
+                    }
+                    
+                    for (int i = 0, count = orderedTrackViewModels.Count; i < count; i++)
+                    {
+                        string albumKey = orderedTrackViewModels[i].Track.AlbumKey;
+                        albumKeyToCalculatedDiscCount.TryGetValue(albumKey, out orderedTrackViewModels[i].CalculatedDiscCount);
                         {
-                            highestDisc = Math.Max(highestDisc, orderedTrackViewModels[i].Track.DiscNumber ?? 0);
-
-                            if (i == (count - 1))
-                            {
-                                for (int j = currentAlbumStartingIndex; j < count; j++)
-                                {
-                                    orderedTrackViewModels[j].CalculatedDiscCount = highestDisc;
-                                }
-                            }
                         }
                     }
                 });
