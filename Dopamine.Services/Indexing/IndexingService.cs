@@ -186,6 +186,8 @@ namespace Dopamine.Services.Indexing
                         if (SettingsClient.Get<bool>("Indexing", "RefreshCollectionAutomatically"))
                         {
                             this.AddArtworkInBackgroundAsync();
+                            this.AddAlbumsInBackgroundAsync();
+
                             await this.watcherManager.StartWatchingAsync();
                         }
                     }
@@ -234,6 +236,8 @@ namespace Dopamine.Services.Indexing
             this.IndexingStopped(this, new EventArgs());
 
             this.AddArtworkInBackgroundAsync();
+
+            this.AddAlbumsInBackgroundAsync();
 
             if (SettingsClient.Get<bool>("Indexing", "RefreshCollectionAutomatically"))
             {
@@ -812,7 +816,7 @@ namespace Dopamine.Services.Indexing
             });
 
             this.isIndexingArtwork = false;
-            LogClient.Error("+++ FINISHED ADDING ARTWORK IN THE BACKGROUND. Time required: {0} ms +++", Convert.ToInt64(DateTime.Now.Subtract(startTime).TotalMilliseconds));
+            LogClient.Info("+++ FINISHED ADDING ARTWORK IN THE BACKGROUND. Time required: {0} ms +++", Convert.ToInt64(DateTime.Now.Subtract(startTime).TotalMilliseconds));
         }
 
         public async void ReScanAlbumArtworkAsync(bool onlyWhenHasNoCover)
@@ -857,6 +861,39 @@ namespace Dopamine.Services.Indexing
             });
 
             return allFolderPaths;
+        }
+
+        private async void AddAlbumsInBackgroundAsync()
+        {
+            LogClient.Info("+++ STARTED ADDING ALBUMS IN THE BACKGROUND +++");
+
+            DateTime startTime = DateTime.Now;
+
+            await Task.Run(async () =>
+            {
+                using (SQLiteConnection conn = this.factory.GetConnection())
+                {
+                    try
+                    {
+                        await this.trackRepository.DeleteUnusedAlbumsAsync();
+
+
+                        IList<Album> albumsToIndex = await this.trackRepository.GetAlbumsToIndexAsync();
+
+                        foreach (Album album in albumsToIndex)
+                        {
+                            conn.Insert(album);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LogClient.Error("Unexpected error occurred while updating albums in the background. Exception: {0}", ex.Message);
+                    }
+                }
+            });
+
+            this.isIndexingArtwork = false;
+            LogClient.Info("+++ FINISHED ADDING Albums IN THE BACKGROUND. Time required: {0} ms +++", Convert.ToInt64(DateTime.Now.Subtract(startTime).TotalMilliseconds));
         }
     }
 }

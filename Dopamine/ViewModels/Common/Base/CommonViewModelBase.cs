@@ -134,6 +134,7 @@ namespace Dopamine.ViewModels.Common.Base
             this.searchService.DoSearch += (searchText) => this.FilterLists();
             this.metadataService.RatingChanged += MetadataService_RatingChangedAsync;
             this.metadataService.LoveChanged += MetadataService_LoveChangedAsync;
+            this.metadataService.AlbumLoveChanged += MetadataService_AlbumLoveChangedAsync;
 
             // Flags
             this.EnableRating = SettingsClient.Get<bool>("Behaviour", "EnableRating");
@@ -272,6 +273,7 @@ namespace Dopamine.ViewModels.Common.Base
         protected abstract void ConditionalScrollToPlayingTrack();
         protected abstract void MetadataService_RatingChangedAsync(RatingChangedEventArgs e);
         protected abstract void MetadataService_LoveChangedAsync(LoveChangedEventArgs e);
+        protected abstract void MetadataService_AlbumLoveChangedAsync(AlbumLoveChangedEventArgs e);
         protected abstract void ShowSelectedTrackInformation();
         protected abstract Task LoadedCommandAsync();
         protected abstract Task UnloadedCommandAsync();

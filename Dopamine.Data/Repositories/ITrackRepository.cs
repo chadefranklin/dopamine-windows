@@ -60,8 +60,18 @@ namespace Dopamine.Data.Repositories
 
         Task UpdateLoveAsync(string path, int love);
 
+        Task UpdateAlbumLoveAsync(string albumKey, int albumLove, long? dateAlbumLoved);
+
         Task UpdatePlaybackCountersAsync(PlaybackCounter counters);
 
         Task<PlaybackCounter> GetPlaybackCountersAsync(string path);
+
+        Task<Dictionary<string, Album>> GetAlbumsAsync(IList<string> albumKeys);
+
+        Task<Album> GetAlbumFromAlbumKeyAsync(string albumKey);
+
+        Task<IList<Album>> GetAlbumsToIndexAsync();
+
+        Task DeleteUnusedAlbumsAsync();
     }
 }

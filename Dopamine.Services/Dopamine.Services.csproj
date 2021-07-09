@@ -184,6 +184,7 @@
     <Compile Include="Lyrics\ILyricsService.cs" />
     <Compile Include="Lyrics\LyricsLineViewModel.cs" />
     <Compile Include="Lyrics\LyricsService.cs" />
+    <Compile Include="Metadata\AlbumLoveChangedEventArgs.cs" />
     <Compile Include="Metadata\IMetadataService.cs" />
     <Compile Include="Metadata\LoveChangedEventArgs.cs" />
     <Compile Include="Metadata\MetadataChangedEventArgs.cs" />

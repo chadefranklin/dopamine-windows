@@ -12,6 +12,8 @@ namespace Dopamine.Services.Metadata
 
         Task UpdateTrackLoveAsync(string path, bool love);
 
+        Task UpdateAlbumLoveAsync(string albumKey, bool albumLove, long? dateAlbumLoved);
+
         Task UpdateTracksAsync(IList<FileMetadata> fileMetadatas, bool updateAlbumArtwork);
 
         Task UpdateAlbumAsync(AlbumViewModel albumViewModel, MetadataArtworkValue artwork, bool updateFileArtwork);
@@ -27,5 +29,6 @@ namespace Dopamine.Services.Metadata
         event Action<MetadataChangedEventArgs> MetadataChanged;
         event Action<RatingChangedEventArgs> RatingChanged;
         event Action<LoveChangedEventArgs> LoveChanged;
+        event Action<AlbumLoveChangedEventArgs> AlbumLoveChanged;
     }
 }

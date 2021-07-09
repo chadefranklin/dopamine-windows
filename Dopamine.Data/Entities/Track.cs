@@ -75,6 +75,9 @@ namespace Dopamine.Data.Entities
 
         public long? DateLastPlayed { get; set; }
 
+        [Ignore]
+        public Album Album { get; set; }
+
         public static Track CreateDefault(string path)
         {
             var track = new Track()

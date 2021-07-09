@@ -57,6 +57,16 @@ namespace Dopamine.Data.Repositories
                       WHERE f.ShowInCollection = 1 AND t.IndexingSuccess = 1";
         }
 
+        private string SelectAlbumFromTrackQueryPart()
+        {
+            return @"SELECT DISTINCT t.AlbumKey";
+        }
+
+        private string SelectAllAlbumFromTrackQuery()
+        {
+            return $"{this.SelectAlbumFromTrackQueryPart()} FROM Track t";
+        }
+
         public async Task<List<Track>> GetTracksAsync(IList<string> paths)
         {
             var tracks = new List<Track>();
@@ -850,6 +860,35 @@ namespace Dopamine.Data.Repositories
                 }
             });
         }
+        public async Task UpdateAlbumLoveAsync(string albumKey, int albumLove, long? dateAlbumLoved)
+        {
+            await Task.Run(() =>
+            {
+                try
+                {
+                    using (var conn = this.factory.GetConnection())
+                    {
+                        try
+                        {
+                            if (dateAlbumLoved.HasValue) {
+                                conn.Execute("UPDATE Album SET AlbumLove=?, DateAlbumLoved=? WHERE AlbumKey=?", albumLove, dateAlbumLoved, albumKey);
+                            } else
+                            {
+                                conn.Execute("UPDATE Album SET AlbumLove=? WHERE AlbumKey=?", albumLove, albumKey);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogClient.Error("Could not update albumlove for albumKey='{0}'. Exception: {1}", albumKey, ex.Message);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Could not connect to the database. Exception: {0}", ex.Message);
+                }
+            });
+        }
 
         public async Task UpdatePlaybackCountersAsync(PlaybackCounter counters)
         {
@@ -928,6 +967,125 @@ namespace Dopamine.Data.Repositories
                 LogClient.Error("Could not connect to the database. Exception: {0}", ex.Message);
             }
             throw new NotImplementedException();
+        }
+
+        public async Task<Dictionary<string, Album>> GetAlbumsAsync(IList<string> albumKeys)
+        {
+            var albums = new Dictionary<string, Album>();
+
+            await Task.Run(() =>
+            {
+                try
+                {
+                    using (var conn = this.factory.GetConnection())
+                    {
+                        try
+                        {
+                            albums = conn.Query<Album>($"SELECT * FROM Album a WHERE {DataUtils.CreateInClause("a.AlbumKey", albumKeys)};").ToDictionary(x => x.AlbumKey, x => x);
+                        }
+                        catch (Exception ex)
+                        {
+                            LogClient.Error("Could not get the Albums for albumKeys. Exception: {0}", ex.Message);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Could not connect to the database. Exception: {0}", ex.Message);
+                }
+            });
+
+            return albums;
+        }
+
+        public async Task<Album> GetAlbumFromAlbumKeyAsync(string albumKey)
+        {
+            Album album = null;
+
+            await Task.Run(() =>
+            {
+                try
+                {
+                    using (var conn = this.factory.GetConnection())
+                    {
+                        try
+                        {
+                            Album dbAlbum = conn.Query<Album>("SELECT * FROM Album WHERE AlbumKey=?", albumKey).FirstOrDefault();
+
+                            if (dbAlbum != null)
+                            {
+                                album = dbAlbum;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogClient.Error("Could not get Album with albumKey='{0}'. Exception: {1}", albumKey, ex.Message);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Could not connect to the database. Exception: {0}", ex.Message);
+                }
+            });
+
+            return album;
+        }
+
+        public async Task<IList<Album>> GetAlbumsToIndexAsync()
+        {
+            var albumsToIndex = new List<Album>();
+
+            await Task.Run(() =>
+            {
+                try
+                {
+                    using (var conn = this.factory.GetConnection())
+                    {
+                        try
+                        {
+                            albumsToIndex = conn.Query<Album>($@"{this.SelectAllAlbumFromTrackQuery()}
+                                                                        WHERE AlbumKey NOT IN (SELECT AlbumKey FROM Album) 
+                                                                        AND AlbumKey IS NOT NULL AND AlbumKey <> '';");
+                        }
+                        catch (Exception ex)
+                        {
+                            LogClient.Error("Could not get the albumKeys to index. Exception: {0}", ex.Message);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Could not connect to the database. Exception: {0}", ex.Message);
+                }
+            });
+
+            return albumsToIndex;
+        }
+
+        public async Task DeleteUnusedAlbumsAsync()
+        {
+            await Task.Run(() =>
+            {
+                try
+                {
+                    using (var conn = this.factory.GetConnection())
+                    {
+                        try
+                        {
+                            conn.Execute("DELETE FROM Album WHERE AlbumKey NOT IN (SELECT AlbumKey FROM Track);");
+                        }
+                        catch (Exception ex)
+                        {
+                            LogClient.Error("Could not delete unused Album. Exception: {0}", ex.Message);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Could not connect to the database. Exception: {0}", ex.Message);
+                }
+            });
         }
     }
 }

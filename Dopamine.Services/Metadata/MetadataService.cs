@@ -33,6 +33,7 @@ namespace Dopamine.Services.Metadata
         public event Action<MetadataChangedEventArgs> MetadataChanged = delegate { };
         public event Action<RatingChangedEventArgs> RatingChanged = delegate { };
         public event Action<LoveChangedEventArgs> LoveChanged = delegate { };
+        public event Action<AlbumLoveChangedEventArgs> AlbumLoveChanged = delegate { };
 
         public MetadataService(IPlaybackService playbackService, ICacheService cacheService, ITrackRepository trackRepository,
             IAlbumArtworkRepository albumArtworkRepository)
@@ -93,6 +94,13 @@ namespace Dopamine.Services.Metadata
             await this.trackRepository.UpdateLoveAsync(path, love ? 1 : 0);
 
             this.LoveChanged(new LoveChangedEventArgs(path.ToSafePath(), love));
+        }
+
+        public async Task UpdateAlbumLoveAsync(string albumKey, bool albumLove, long? dateAlbumLoved)
+        {
+            await this.trackRepository.UpdateAlbumLoveAsync(albumKey, albumLove ? 1 : 0, dateAlbumLoved);
+
+            this.AlbumLoveChanged(new AlbumLoveChangedEventArgs(albumKey, albumLove, dateAlbumLoved));
         }
 
         private byte[] GetEmbeddedArtwork(string filename, int size)

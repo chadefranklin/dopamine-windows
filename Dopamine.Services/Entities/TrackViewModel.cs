@@ -107,6 +107,8 @@ namespace Dopamine.Services.Entities
 
         public long? CalculatedDiscCount;
 
+        public bool HasAlbum => Track.Album != null;
+
         public string GetAlbumArtist()
         {
             if (!string.IsNullOrEmpty(this.Track.AlbumArtists))
@@ -176,6 +178,28 @@ namespace Dopamine.Services.Entities
             }
         }
 
+        public bool AlbumLove
+        {
+            get { return this.Track.Album != null ? (this.Track.Album.AlbumLove.HasValue && this.Track.Album.AlbumLove.Value != 0 ? true : false) : false; }
+            set
+            {
+                // Update the UI
+                this.Track.Album.AlbumLove = value ? 1 : 0;
+
+                long? dateAlbumLoved = null;
+
+                if (value)
+                {
+                    dateAlbumLoved = DateTime.Now.Ticks;
+                    this.Track.Album.DateAlbumLoved = dateAlbumLoved;
+                }
+                this.RaisePropertyChanged(nameof(this.AlbumLove));
+
+                // Update AlbumLove in the database
+                this.metadataService.UpdateAlbumLoveAsync(this.Track.AlbumKey, value, dateAlbumLoved);
+            }
+        }
+
         public bool IsPlaying
         {
             get { return this.isPlaying; }
@@ -204,6 +228,16 @@ namespace Dopamine.Services.Entities
         {
             this.Track.Love = love ? 1 : 0;
             this.RaisePropertyChanged(nameof(this.Love));
+        }
+
+        public void UpdateVisibleAlbumLove(bool love, long? dateAlbumLoved)
+        {
+            this.Track.Album.AlbumLove = love ? 1 : 0;
+            if (love)
+            {
+                this.Track.Album.DateAlbumLoved = dateAlbumLoved;
+            }
+            this.RaisePropertyChanged(nameof(this.AlbumLove));
         }
 
         public void UpdateVisibleCounters(PlaybackCounter counters)

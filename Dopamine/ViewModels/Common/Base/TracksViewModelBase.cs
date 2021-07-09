@@ -254,11 +254,15 @@ namespace Dopamine.ViewModels.Common.Base
                         }
                     }
                     
+                    Dictionary<string, Album> albumKeyToAlbum = await this.trackRepository.GetAlbumsAsync(albumKeyToCalculatedDiscCount.Keys.ToList());
+
                     for (int i = 0, count = orderedTrackViewModels.Count; i < count; i++)
                     {
                         string albumKey = orderedTrackViewModels[i].Track.AlbumKey;
                         albumKeyToCalculatedDiscCount.TryGetValue(albumKey, out orderedTrackViewModels[i].CalculatedDiscCount);
+                        if (albumKeyToAlbum.TryGetValue(albumKey, out Album a))
                         {
+                            orderedTrackViewModels[i].Track.Album = a;
                         }
                     }
                 });
@@ -532,6 +536,26 @@ namespace Dopamine.ViewModels.Common.Base
                     {
                         // The UI is only updated if PropertyChanged is fired on the UI thread
                         Application.Current.Dispatcher.Invoke(() => vm.UpdateVisibleLove(e.Love));
+                    }
+                }
+            });
+        }
+
+        protected async override void MetadataService_AlbumLoveChangedAsync(AlbumLoveChangedEventArgs e)
+        {
+            if (this.Tracks == null)
+            {
+                return;
+            }
+
+            await Task.Run(() =>
+            {
+                foreach (TrackViewModel vm in this.Tracks)
+                {
+                    if (vm.Track.AlbumKey.Equals(e.AlbumKey))
+                    {
+                        // The UI is only updated if PropertyChanged is fired on the UI thread
+                        Application.Current.Dispatcher.Invoke(() => vm.UpdateVisibleAlbumLove(e.Love, e.DateAlbumLoved));
                     }
                 }
             });

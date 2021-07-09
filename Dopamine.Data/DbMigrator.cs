@@ -25,7 +25,7 @@ namespace Dopamine.Data
         // NOTE: whenever there is a change in the database schema,
         // this version MUST be incremented and a migration method
         // MUST be supplied to match the new version number
-        protected const int CURRENT_VERSION = 26;
+        protected const int CURRENT_VERSION = 27;
         private ISQLiteConnectionFactory factory;
         private int userDatabaseVersion;
 
@@ -1073,6 +1073,23 @@ namespace Dopamine.Data
 
                 conn.Execute("UPDATE Track SET PlayCount=0 WHERE PlayCount IS NULL;");
                 conn.Execute("UPDATE Track SET SkipCount=0 WHERE SkipCount IS NULL;");
+
+                conn.Execute("COMMIT;");
+                conn.Execute("VACUUM;");
+            }
+        }
+
+        [DatabaseVersion(27)]
+        private void Migrate27()
+        {
+            using (var conn = this.factory.GetConnection())
+            {
+                conn.Execute("BEGIN TRANSACTION;");
+
+                conn.Execute("CREATE TABLE Album (" +
+                             "AlbumKey	        TEXT," +
+                             "AlbumLove	        INTEGER," +
+                             "DateAlbumLoved	INTEGER);");
 
                 conn.Execute("COMMIT;");
                 conn.Execute("VACUUM;");
