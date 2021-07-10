@@ -31,6 +31,7 @@
             <dc:PivotItem Header="{DynamicResource Language_Songs}" Style="{StaticResource MenuPivotItem}"/>
             <dc:PivotItem Header="{DynamicResource Language_Playlists}" Style="{StaticResource MenuPivotItem}"/>
             <dc:PivotItem Header="{DynamicResource Language_Folders}" Style="{StaticResource MenuPivotItem}"/>
+            <dc:PivotItem Header="{DynamicResource Language_Love}" Style="{StaticResource MenuPivotItem}"/>
         </dc:Pivot>
     </DockPanel>
 </UserControl>

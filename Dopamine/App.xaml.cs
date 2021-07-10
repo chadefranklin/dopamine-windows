@@ -327,6 +327,7 @@ namespace Dopamine
                 containerRegistry.Register<object, CollectionFolders>(typeof(CollectionFolders).FullName);
                 containerRegistry.Register<object, CollectionGenres>(typeof(CollectionGenres).FullName);
                 containerRegistry.Register<object, CollectionTracks>(typeof(CollectionTracks).FullName);
+                containerRegistry.Register<object, CollectionLoveAlbums>(typeof(CollectionLoveAlbums).FullName);
 
                 // Settings
                 containerRegistry.Register<object, SettingsMenu>(typeof(SettingsMenu).FullName);

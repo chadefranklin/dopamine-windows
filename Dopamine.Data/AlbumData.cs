@@ -20,6 +20,10 @@
 
         public long? DateLastPlayed { get; set; }
 
+        public long? AlbumLove { get; set; }
+
+        public long? DateAlbumLoved { get; set; }
+
         public static AlbumData CreateDefault()
         {
             return new AlbumData()
@@ -32,7 +36,9 @@
                 Year = 0,
                 DateFileCreated = 0,
                 DateAdded = 0,
-                DateLastPlayed = 0
+                DateLastPlayed = 0,
+                AlbumLove = 0,
+                DateAlbumLoved = 0
             };
         }
     }

@@ -13,5 +13,7 @@ namespace Dopamine.Data
         public long DateLastPlayed { get; set; }
 
         public string SafePath { get; set; }
+
+        public string AlbumKey { get; set; }
     }
 }

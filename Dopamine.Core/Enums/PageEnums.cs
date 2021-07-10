@@ -31,7 +31,8 @@
         Albums = 2,
         Songs = 3,
         Playlists = 4,
-        Folders = 5
+        Folders = 5,
+        Love = 6,
     }
 
     public enum SettingsPage

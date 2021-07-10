@@ -19,6 +19,8 @@ namespace Dopamine.Services.Entities
         private long? dateFileCreated;
         private long? dateLastPlayed;
         private long sortYear;
+        private long? albumLove;
+        private long? dateAlbumLoved;
 
         public AlbumViewModel(AlbumData albumData)
         {
@@ -31,6 +33,8 @@ namespace Dopamine.Services.Entities
             this.DateAdded = albumData.DateAdded;
             this.DateFileCreated = albumData.DateFileCreated;
             this.dateLastPlayed = albumData.DateLastPlayed;
+            this.albumLove = albumData.AlbumLove;
+            this.dateAlbumLoved = albumData.DateAlbumLoved;
         }
 
         private string GetAlbumArtist(AlbumData albumData)
@@ -173,11 +177,41 @@ namespace Dopamine.Services.Entities
             set { SetProperty<string>(ref this.subHeader, value); }
         }
 
+        public long? AlbumLove
+        {
+            get { return this.albumLove; }
+            set
+            {
+                SetProperty<long?>(ref this.albumLove, value);
+            }
+        }
+
+        public long? DateAlbumLoved
+        {
+            get { return this.dateAlbumLoved; }
+            set
+            {
+                SetProperty<long?>(ref this.dateAlbumLoved, value);
+            }
+        }
+
         public void UpdateCounters(PlaybackCounter counters)
         {
             this.DateLastPlayed = counters.DateLastPlayed;
             this.RaisePropertyChanged(nameof(this.DateLastPlayed));
         }
+
+        public void UpdateAlbumLove(bool love, long? dateAlbumLoved)
+        {
+            this.AlbumLove = love ? 1 : 0;
+            if (love)
+            {
+                this.DateAlbumLoved = dateAlbumLoved;
+            }
+            this.RaisePropertyChanged(nameof(this.AlbumLove));
+            this.RaisePropertyChanged(nameof(this.DateAlbumLoved));
+        }
+
         public override string ToString()
         {
             return this.albumTitle;

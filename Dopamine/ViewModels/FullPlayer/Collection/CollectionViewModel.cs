@@ -54,6 +54,9 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                 case CollectionPage.Folders:
                     this.regionManager.RequestNavigate(RegionNames.CollectionRegion, typeof(CollectionFolders).FullName);
                     break;
+                case CollectionPage.Love:
+                    this.regionManager.RequestNavigate(RegionNames.CollectionRegion, typeof(CollectionLoveAlbums).FullName);
+                    break;
                 default:
                     break;
             }

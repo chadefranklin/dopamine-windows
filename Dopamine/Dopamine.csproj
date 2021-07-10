@@ -277,6 +277,7 @@
     <Compile Include="ViewModels\FullPlayer\Collection\CollectionArtistsViewModel.cs" />
     <Compile Include="ViewModels\FullPlayer\Collection\CollectionFoldersViewModel.cs" />
     <Compile Include="ViewModels\FullPlayer\Collection\CollectionGenresViewModel.cs" />
+    <Compile Include="ViewModels\FullPlayer\Collection\CollectionLoveAlbumsViewModel.cs" />
     <Compile Include="ViewModels\FullPlayer\Collection\CollectionMenuViewModel.cs" />
     <Compile Include="ViewModels\FullPlayer\Collection\CollectionPlaylistEditorViewModel.cs" />
     <Compile Include="ViewModels\FullPlayer\Collection\CollectionPlaylistsViewModel.cs" />
@@ -452,6 +453,9 @@
     </Compile>
     <Compile Include="Views\FullPlayer\Collection\CollectionGenres.xaml.cs">
       <DependentUpon>CollectionGenres.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\FullPlayer\Collection\CollectionLoveAlbums.xaml.cs">
+      <DependentUpon>CollectionLoveAlbums.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\FullPlayer\Collection\CollectionMenu.xaml.cs">
       <DependentUpon>CollectionMenu.xaml</DependentUpon>
@@ -1306,6 +1310,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\FullPlayer\Collection\CollectionGenres.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\FullPlayer\Collection\CollectionLoveAlbums.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

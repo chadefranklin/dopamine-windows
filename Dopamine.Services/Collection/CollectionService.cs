@@ -233,6 +233,13 @@ namespace Dopamine.Services.Collection
             return await this.GetUniqueAlbumsAsync(albums);
         }
 
+        public async Task<IList<AlbumViewModel>> GetAlbumsForAlbumKeysAsync(IList<string> albumKeys)
+        {
+            IList<AlbumData> albums = await this.trackRepository.GetAllAlbumDataAsync();
+
+            return await this.GetUniqueAlbumsAsync(albums);
+        }
+
         public async Task<IList<AlbumViewModel>> GetArtistAlbumsAsync(IList<string> selectedArtists, ArtistType artistType)
         {
             IList<AlbumData> albums = await this.trackRepository.GetArtistAlbumDataAsync(selectedArtists.Select(x => x.Replace(ResourceUtils.GetString("Language_Unknown_Artist"), string.Empty)).ToList(), artistType);

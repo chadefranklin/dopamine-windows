@@ -41,12 +41,14 @@ namespace Dopamine.Data.Repositories
                      MAX(t.Year) AS Year, 
                      MAX(t.DateFileCreated) AS DateFileCreated, 
                      MAX(t.DateAdded) AS DateAdded,
-                     MAX(t.DateLastPlayed) AS DateLastPlayed";
+                     MAX(t.DateLastPlayed) AS DateLastPlayed,
+                     a.AlbumLove AS AlbumLove,
+                     MAX(a.DateAlbumLoved) AS DateAlbumLoved";
         }
 
         private string SelectAllAlbumDataQuery()
         {
-            return $"{this.SelectedAlbumDataQueryPart()} FROM Track t";
+            return $"{this.SelectedAlbumDataQueryPart()} FROM Track t INNER JOIN Album a ON a.AlbumKey = t.AlbumKey";
         }
 
         private string SelectVisibleAlbumDataQuery()
@@ -552,7 +554,7 @@ namespace Dopamine.Data.Repositories
                                 }
                             }
 
-                            string query = this.SelectVisibleAlbumDataQuery() + filterQuery + " GROUP BY AlbumKey";
+                            string query = this.SelectVisibleAlbumDataQuery() + filterQuery + " GROUP BY t.AlbumKey";
 
                             albumData = conn.Query<AlbumData>(query);
                         }
@@ -590,7 +592,7 @@ namespace Dopamine.Data.Repositories
                                 filterQuery = $" AND {DataUtils.CreateOrLikeClause("Genres", genres, Constants.ColumnValueDelimiter)}";
                             }
 
-                            string query = this.SelectVisibleAlbumDataQuery() + filterQuery + " GROUP BY AlbumKey";
+                            string query = this.SelectVisibleAlbumDataQuery() + filterQuery + " GROUP BY t.AlbumKey";
 
                             albumData = conn.Query<AlbumData>(query);
                         }
@@ -621,7 +623,7 @@ namespace Dopamine.Data.Repositories
                     {
                         try
                         {
-                            string query = this.SelectVisibleAlbumDataQuery() + " GROUP BY AlbumKey";
+                            string query = this.SelectVisibleAlbumDataQuery() + " GROUP BY t.AlbumKey";
 
                             albumData = conn.Query<AlbumData>(query);
                         }
@@ -653,9 +655,9 @@ namespace Dopamine.Data.Repositories
                         try
                         {
                             albumDataToIndex = conn.Query<AlbumData>($@"{this.SelectAllAlbumDataQuery()}
-                                                                        WHERE AlbumKey NOT IN (SELECT AlbumKey FROM AlbumArtwork) 
-                                                                        AND AlbumKey IS NOT NULL AND AlbumKey <> ''
-                                                                        AND NeedsAlbumArtworkIndexing=1 GROUP BY AlbumKey;");
+                                                                        WHERE t.AlbumKey NOT IN (SELECT AlbumKey FROM AlbumArtwork) 
+                                                                        AND t.AlbumKey IS NOT NULL AND t.AlbumKey <> ''
+                                                                        AND NeedsAlbumArtworkIndexing=1 GROUP BY t.AlbumKey;");
                         }
                         catch (Exception ex)
                         {
@@ -927,7 +929,7 @@ namespace Dopamine.Data.Repositories
                     {
                         try
                         {
-                            counters = conn.Query<PlaybackCounter>("SELECT Path, SafePath, PlayCount, SkipCount, DateLastPlayed FROM Track WHERE SafePath=?", path.ToSafePath()).FirstOrDefault();
+                            counters = conn.Query<PlaybackCounter>("SELECT Path, SafePath, PlayCount, SkipCount, DateLastPlayed, AlbumKey FROM Track WHERE SafePath=?", path.ToSafePath()).FirstOrDefault();
                         }
                         catch (Exception ex)
                         {
@@ -944,29 +946,62 @@ namespace Dopamine.Data.Repositories
             return counters;
         }
 
-        public Task<AlbumData> GetAlbumDataAsync(string albumKey)
+        public async Task<AlbumData> GetAlbumDataAsync(string albumKey)
         {
             AlbumData albumData = null;
 
-            try
+            await Task.Run(() =>
             {
-                using (var conn = this.factory.GetConnection())
+                try
                 {
-                    try
+                    using (var conn = this.factory.GetConnection())
                     {
-                        albumData = conn.Query<AlbumData>($@"{this.SelectAllAlbumDataQuery()} WHERE AlbumKey=?;", albumKey).FirstOrDefault();
-                    }
-                    catch (Exception ex)
-                    {
-                        LogClient.Error("Could not get AlbumData for albumKey='{0}'. Exception: {1}", albumKey, ex.Message);
+                        try
+                        {
+                            albumData = conn.Query<AlbumData>($@"{this.SelectAllAlbumDataQuery()} WHERE t.AlbumKey=?;", albumKey).FirstOrDefault();
+                        }
+                        catch (Exception ex)
+                        {
+                            LogClient.Error("Could not get AlbumData for albumKey='{0}'. Exception: {1}", albumKey, ex.Message);
+                        }
                     }
                 }
-            }
-            catch (Exception ex)
+                catch (Exception ex)
+                {
+                    LogClient.Error("Could not connect to the database. Exception: {0}", ex.Message);
+                }
+            });
+
+            return albumData;
+        }
+
+        public async Task<List<AlbumData>> GetAlbumDataForAlbumKeysAsync(IList<string> albumKeys)
+        {
+            List<AlbumData> albumData = null;
+
+            await Task.Run(() =>
             {
-                LogClient.Error("Could not connect to the database. Exception: {0}", ex.Message);
-            }
-            throw new NotImplementedException();
+                try
+                {
+                    using (var conn = this.factory.GetConnection())
+                    {
+                        try
+                        {
+                            albumData = conn.Query<AlbumData>($@"{this.SelectAllAlbumDataQuery()} WHERE {DataUtils.CreateInClause("a.AlbumKey", albumKeys)};");
+                        }
+                        catch (Exception ex)
+                        {
+                            LogClient.Error("Could not get AlbumData for albumKeys. Exception: {0}", ex.Message);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Could not connect to the database. Exception: {0}", ex.Message);
+                }
+            });
+
+            return albumData;
         }
 
         public async Task<Dictionary<string, Album>> GetAlbumsAsync(IList<string> albumKeys)
@@ -1045,8 +1080,8 @@ namespace Dopamine.Data.Repositories
                         try
                         {
                             albumsToIndex = conn.Query<Album>($@"{this.SelectAllAlbumFromTrackQuery()}
-                                                                        WHERE AlbumKey NOT IN (SELECT AlbumKey FROM Album) 
-                                                                        AND AlbumKey IS NOT NULL AND AlbumKey <> '';");
+                                                                        WHERE t.AlbumKey NOT IN (SELECT AlbumKey FROM Album) 
+                                                                        AND t.AlbumKey IS NOT NULL AND t.AlbumKey <> '';");
                         }
                         catch (Exception ex)
                         {

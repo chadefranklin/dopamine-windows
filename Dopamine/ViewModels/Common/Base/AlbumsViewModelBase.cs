@@ -39,6 +39,7 @@ namespace Dopamine.ViewModels.Common.Base
         private IIndexingService indexingService;
         private IAlbumArtworkRepository albumArtworkRepository;
         private ObservableCollection<AlbumViewModel> albums;
+        private IList<AlbumViewModel> albumsHolder;
         private CollectionViewSource albumsCvs;
         private IList<AlbumViewModel> selectedAlbums;
         private bool delaySelectedAlbums;
@@ -98,6 +99,12 @@ namespace Dopamine.ViewModels.Common.Base
         {
             get { return this.albums; }
             set { SetProperty<ObservableCollection<AlbumViewModel>>(ref this.albums, value); }
+        }
+
+        public IList<AlbumViewModel> AlbumsHolder
+        {
+            get { return this.albumsHolder; }
+            set { SetProperty<IList<AlbumViewModel>>(ref this.albumsHolder, value); }
         }
 
         public CollectionViewSource AlbumsCvs
@@ -311,9 +318,10 @@ namespace Dopamine.ViewModels.Common.Base
             await this.GetAlbumsCommonAsync(await this.collectionService.GetAllAlbumsAsync(), albumOrder);
         }
 
-        protected async Task GetAllAlbumsAsync(AlbumOrder albumOrder)
+        protected async Task GetAllAlbumsAsync(AlbumOrder albumOrder, bool loveOnly = false)
         {
-            await this.GetAlbumsCommonAsync(await this.collectionService.GetAllAlbumsAsync(), albumOrder);
+            this.AlbumsHolder = await this.collectionService.GetAllAlbumsAsync();
+            await this.GetAlbumsCommonAsync(this.AlbumsHolder, albumOrder, loveOnly);
         }
 
         protected void ClearAlbums()
@@ -331,7 +339,7 @@ namespace Dopamine.ViewModels.Common.Base
             this.Albums = null;
         }
 
-        protected async Task GetAlbumsCommonAsync(IList<AlbumViewModel> albums, AlbumOrder albumOrder)
+        protected async Task GetAlbumsCommonAsync(IList<AlbumViewModel> albums, AlbumOrder albumOrder, bool loveOnly = false)
         {
             try
             {
@@ -339,7 +347,29 @@ namespace Dopamine.ViewModels.Common.Base
                 IList<AlbumViewModel> orderedAlbums = await this.collectionService.OrderAlbumsAsync(albums, albumOrder);
 
                 // Create new ObservableCollection
-                var albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums);
+                ObservableCollection<AlbumViewModel> albumViewModels = null;
+                if (!loveOnly)
+                {
+                    if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
+                    {
+                        albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums.Where(x => x.DateLastPlayed.HasValue)); // maybe create option in settings to show non-played albums even when sorted by dateLastPlayed
+                    }
+                    else
+                    {
+                        albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums);
+                    }
+                }
+                else
+                {
+                    if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
+                    {
+                        albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums.Where(x => x.AlbumLove == 1 && x.DateLastPlayed.HasValue));
+                    }
+                    else
+                    {
+                        albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums.Where(x => x.AlbumLove == 1));
+                    }
+                }
 
                 // Unbind to improve UI performance
                 this.ClearAlbums();
@@ -361,12 +391,7 @@ namespace Dopamine.ViewModels.Common.Base
             Application.Current.Dispatcher.Invoke(() =>
             {
                 // Populate CollectionViewSource
-                if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
-                {
-                    this.AlbumsCvs = new CollectionViewSource { Source = this.Albums.Where(x => x.DateLastPlayed.HasValue) };
-                } else {
-                    this.AlbumsCvs = new CollectionViewSource { Source = this.Albums };
-                }
+                this.AlbumsCvs = new CollectionViewSource { Source = this.Albums };
                 this.AlbumsCvs.Filter += new FilterEventHandler(AlbumsCvs_Filter);
 
                 // Update count
