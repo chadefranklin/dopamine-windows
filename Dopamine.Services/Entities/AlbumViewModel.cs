@@ -173,6 +173,11 @@ namespace Dopamine.Services.Entities
             set { SetProperty<string>(ref this.subHeader, value); }
         }
 
+        public void UpdateCounters(PlaybackCounter counters)
+        {
+            this.DateLastPlayed = counters.DateLastPlayed;
+            this.RaisePropertyChanged(nameof(this.DateLastPlayed));
+        }
         public override string ToString()
         {
             return this.albumTitle;
