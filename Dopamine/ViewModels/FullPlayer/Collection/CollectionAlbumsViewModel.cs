@@ -50,14 +50,14 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                 {
                     this.EnableRating = (bool)e.Entry.Value;
                     this.SetTrackOrder("AlbumsTrackOrder");
-                    await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
+                    await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
                 }
 
                 if (SettingsClient.IsSettingChanged(e, "Behaviour", "EnableLove"))
                 {
                     this.EnableLove = (bool)e.Entry.Value;
                     this.SetTrackOrder("AlbumsTrackOrder");
-                    await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
+                    await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
                 }
             };
 
@@ -79,6 +79,22 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             this.SetCoversizeAsync((CoverSizeType)SettingsClient.Get<int>("CoverSizes", "AlbumsCoverSize"));
 
             this.playbackService.PlaybackCountersChanged += PlaybackService_PlaybackCountersChanged;
+        }
+
+        private IList<AlbumViewModel> SelectiveSelectedAlbums => GetSelectiveSelectedAlbums();
+
+        private IList<AlbumViewModel> GetSelectiveSelectedAlbums()
+        {
+            IList<AlbumViewModel> albumViewModels = null;
+            if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
+            {
+                albumViewModels = (this.SelectedAlbums == null || this.SelectedAlbums.Count == 0) ? this.Albums : this.SelectedAlbums;
+            }
+            else
+            {
+                albumViewModels = this.SelectedAlbums;
+            }
+            return albumViewModels;
         }
 
         private async Task ToggleTrackOrderAsync()
@@ -106,7 +122,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
         protected async override Task FillListsAsync()
         {
             await this.GetAllAlbumsAsync(this.AlbumOrder);
-            await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
+            await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
         }
 
         protected async override Task EmptyListsAsync()
@@ -120,7 +136,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             await base.SelectedAlbumsHandlerAsync(parameter);
 
             this.SetTrackOrder("AlbumsTrackOrder");
-            await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
+            await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
         }
 
         protected override void RefreshLanguage()

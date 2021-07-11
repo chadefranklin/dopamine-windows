@@ -1,5 +1,6 @@
 ﻿using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Base;
+using Dopamine.Core.Utils;
 using Dopamine.Data;
 using Dopamine.Services.Collection;
 using Dopamine.Services.Entities;
@@ -51,14 +52,14 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                 {
                     this.EnableRating = (bool)e.Entry.Value;
                     this.SetTrackOrder("AlbumsTrackOrder");
-                    await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
+                    await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
                 }
 
                 if (SettingsClient.IsSettingChanged(e, "Behaviour", "EnableLove"))
                 {
                     this.EnableLove = (bool)e.Entry.Value;
                     this.SetTrackOrder("AlbumsTrackOrder");
-                    await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
+                    await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
                 }
             };
 
@@ -80,6 +81,14 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             this.SetCoversizeAsync((CoverSizeType)SettingsClient.Get<int>("CoverSizes", "AlbumsCoverSize"));
 
             this.playbackService.PlaybackCountersChanged += PlaybackService_PlaybackCountersChanged;
+        }
+
+        private IList<AlbumViewModel> SelectiveSelectedAlbums => GetSelectiveSelectedAlbums();
+
+        private IList<AlbumViewModel> GetSelectiveSelectedAlbums()
+        {
+            IList<AlbumViewModel> albumViewModels = (this.SelectedAlbums == null || this.SelectedAlbums.Count == 0) ? this.Albums : this.SelectedAlbums;
+            return albumViewModels;
         }
 
         private async Task ToggleTrackOrderAsync()
@@ -107,7 +116,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
         protected async override Task FillListsAsync()
         {
             await this.GetAllAlbumsAsync(this.AlbumOrder, true);
-            await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
+            await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
         }
 
         protected async override Task EmptyListsAsync()
@@ -121,7 +130,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             await base.SelectedAlbumsHandlerAsync(parameter);
 
             this.SetTrackOrder("AlbumsTrackOrder");
-            await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
+            await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
         }
 
         protected override void RefreshLanguage()
@@ -203,7 +212,73 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                 return;
             }
 
-            await this.GetAlbumsCommonAsync(this.AlbumsHolder, this.AlbumOrder, true);
+            await Task.Run(async () =>
+            {
+                if (e.Love) {
+                    // Insert in correct order rather than calling await this.GetAlbumsCommonAsync(this.AlbumsHolder, this.AlbumOrder, true);
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        AlbumViewModel albumToInsert = this.AlbumsHolder.Where(x => x.AlbumKey == e.AlbumKey).FirstOrDefault();
+
+                        int insertIndex;
+                        switch (this.AlbumOrder)
+                        {
+                            case AlbumOrder.Alphabetical:
+                                for (insertIndex = 0; insertIndex < this.Albums.Count && FormatUtils.GetSortableString(this.Albums[insertIndex].AlbumTitle).CompareTo(FormatUtils.GetSortableString(albumToInsert.AlbumTitle)) < 0; insertIndex++) ;
+                                this.Albums.Insert(insertIndex, albumToInsert);
+                                break;
+                            case AlbumOrder.ByDateAdded:
+                                for (insertIndex = 0; insertIndex < this.Albums.Count && ((long)this.Albums[insertIndex].DateAdded).CompareTo(albumToInsert.DateAdded) > 0; insertIndex++) ;
+                                this.Albums.Insert(insertIndex, albumToInsert);
+                                break;
+                            case AlbumOrder.ByDateCreated:
+                                for (insertIndex = 0; insertIndex < this.Albums.Count && ((long)this.Albums[insertIndex].DateFileCreated).CompareTo(albumToInsert.DateFileCreated) > 0; insertIndex++) ;
+                                this.Albums.Insert(insertIndex, albumToInsert);
+                                break;
+                            case AlbumOrder.ByAlbumArtist:
+                                for (insertIndex = 0; insertIndex < this.Albums.Count && FormatUtils.GetSortableString(this.Albums[insertIndex].AlbumArtist).CompareTo(FormatUtils.GetSortableString(albumToInsert.AlbumArtist)) < 0; insertIndex++) ;
+                                this.Albums.Insert(insertIndex, albumToInsert);
+                                break;
+                            case AlbumOrder.ByYearAscending:
+                                for (insertIndex = 0; insertIndex < this.Albums.Count && this.Albums[insertIndex].SortYear.CompareTo(albumToInsert.SortYear) < 0; insertIndex++) ;
+                                this.Albums.Insert(insertIndex, albumToInsert);
+                                break;
+                            case AlbumOrder.ByYearDescending:
+                                for (insertIndex = 0; insertIndex < this.Albums.Count && this.Albums[insertIndex].SortYear.CompareTo(albumToInsert.SortYear) > 0; insertIndex++) ;
+                                this.Albums.Insert(insertIndex, albumToInsert);
+                                break;
+                            case AlbumOrder.ByDateLastPlayed:
+                                for (insertIndex = 0; insertIndex < this.Albums.Count && ((long)this.Albums[insertIndex].DateLastPlayed).CompareTo(albumToInsert.DateLastPlayed) > 0; insertIndex++) ;
+                                this.Albums.Insert(insertIndex, albumToInsert);
+                                break;
+                            default:
+                                // Alphabetical
+                                for (insertIndex = 0; insertIndex < this.Albums.Count && FormatUtils.GetSortableString(this.Albums[insertIndex].AlbumTitle).CompareTo(FormatUtils.GetSortableString(albumToInsert.AlbumTitle)) < 0; insertIndex++) ;
+                                this.Albums.Insert(insertIndex, albumToInsert);
+                                break;
+                        }
+
+                        // Update count
+                        this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count();
+                    });
+                } else
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        for (int i = 0, count = this.Albums.Count; i < count; i++)
+                        {
+                            if (this.Albums[i].AlbumKey.Equals(e.AlbumKey))
+                            {
+                                this.Albums.RemoveAt(i);
+                                break;
+                            }
+                        }
+
+                        // Update count
+                        this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count();
+                    });
+                }
+            });
         }
     }
 }
