@@ -203,18 +203,6 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                 return;
             }
 
-            await Task.Run(async () =>
-            {
-                foreach (AlbumViewModel vm in this.AlbumsHolder)
-                {
-                    if (vm.AlbumKey.Equals(e.AlbumKey))
-                    {
-                        // The UI is only updated if PropertyChanged is fired on the UI thread
-                        Application.Current.Dispatcher.Invoke(() => vm.UpdateAlbumLove(e.Love, e.DateAlbumLoved));
-                    }
-                }
-            });
-
             await this.GetAlbumsCommonAsync(this.AlbumsHolder, this.AlbumOrder, true);
         }
     }

@@ -10,6 +10,7 @@ using Dopamine.Services.Collection;
 using Dopamine.Services.Dialog;
 using Dopamine.Services.Entities;
 using Dopamine.Services.Indexing;
+using Dopamine.Services.Metadata;
 using Dopamine.Services.Playback;
 using Dopamine.Services.Playlist;
 using Dopamine.Services.Search;
@@ -363,11 +364,11 @@ namespace Dopamine.ViewModels.Common.Base
                 {
                     if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
                     {
-                        albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums.Where(x => x.AlbumLove == 1 && x.DateLastPlayed.HasValue));
+                        albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums.Where(x => x.AlbumLove == true && x.DateLastPlayed.HasValue));
                     }
                     else
                     {
-                        albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums.Where(x => x.AlbumLove == 1));
+                        albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums.Where(x => x.AlbumLove == true));
                     }
                 }
 
@@ -587,6 +588,28 @@ namespace Dopamine.ViewModels.Common.Base
                     this.AlbumOrder = AlbumOrder.Alphabetical;
                     break;
             }
+        }
+
+        protected async override void MetadataService_AlbumLoveChangedAsync(AlbumLoveChangedEventArgs e)
+        {
+            base.MetadataService_AlbumLoveChangedAsync(e);
+
+            if (this.Albums == null || this.AlbumsHolder == null)
+            {
+                return;
+            }
+
+            await Task.Run(async () =>
+            {
+                foreach (AlbumViewModel vm in this.AlbumsHolder)
+                {
+                    if (vm.AlbumKey.Equals(e.AlbumKey))
+                    {
+                        // The UI is only updated if PropertyChanged is fired on the UI thread
+                        Application.Current.Dispatcher.Invoke(() => vm.UpdateVisibleAlbumLove(e.Love, e.DateAlbumLoved));
+                    }
+                }
+            });
         }
     }
 }

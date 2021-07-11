@@ -6,6 +6,7 @@ using Dopamine.Data.Repositories;
 using Dopamine.Services.Cache;
 using Dopamine.Services.Entities;
 using Dopamine.Services.Playback;
+using Dopamine.Services.Metadata;
 using Prism.Ioc;
 using System;
 using System.Collections.Generic;
@@ -20,14 +21,16 @@ namespace Dopamine.Services.Collection
         private IFolderRepository folderRepository;
         private ICacheService cacheService;
         private IPlaybackService playbackService;
+        private IMetadataService metadataService;
         private IContainerProvider container;
 
-        public CollectionService(ITrackRepository trackRepository, IFolderRepository folderRepository, ICacheService cacheService, IPlaybackService playbackService, IContainerProvider container)
+        public CollectionService(ITrackRepository trackRepository, IFolderRepository folderRepository, ICacheService cacheService, IPlaybackService playbackService, IMetadataService metadataService, IContainerProvider container)
         {
             this.trackRepository = trackRepository;
             this.folderRepository = folderRepository;
             this.cacheService = cacheService;
             this.playbackService = playbackService;
+            this.metadataService = metadataService;
             this.container = container;
         }
 
@@ -167,7 +170,7 @@ namespace Dopamine.Services.Collection
             {
                 foreach (AlbumData album in albums)
                 {
-                    var newAlbum = new AlbumViewModel(album);
+                    var newAlbum = new AlbumViewModel(this.metadataService, album);
 
                     if (!uniqueAlbums.Contains(newAlbum))
                     {

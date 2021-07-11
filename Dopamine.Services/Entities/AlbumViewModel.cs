@@ -1,13 +1,18 @@
 ﻿using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Data;
+using Dopamine.Data.Entities;
+using Dopamine.Services.Metadata;
 using Prism.Mvvm;
 using System.Collections.Generic;
+using System;
 using System.Linq;
 
 namespace Dopamine.Services.Entities
 {
     public class AlbumViewModel : BindableBase
     {
+        private IMetadataService metadataService;
+
         private string albumTitle;
         private string albumArtist;
         private IList<string> albumArtists;
@@ -19,11 +24,12 @@ namespace Dopamine.Services.Entities
         private long? dateFileCreated;
         private long? dateLastPlayed;
         private long sortYear;
-        private long? albumLove;
+        private bool albumLove;
         private long? dateAlbumLoved;
 
-        public AlbumViewModel(AlbumData albumData)
+        public AlbumViewModel(IMetadataService metadataService, AlbumData albumData)
         {
+            this.metadataService = metadataService;
             this.albumArtist = this.GetAlbumArtist(albumData);
             this.albumTitle = !string.IsNullOrEmpty(albumData.AlbumTitle) ? albumData.AlbumTitle : ResourceUtils.GetString("Language_Unknown_Album");
             this.albumArtists = this.GetAlbumArtists(albumData);
@@ -33,7 +39,7 @@ namespace Dopamine.Services.Entities
             this.DateAdded = albumData.DateAdded;
             this.DateFileCreated = albumData.DateFileCreated;
             this.dateLastPlayed = albumData.DateLastPlayed;
-            this.albumLove = albumData.AlbumLove;
+            this.albumLove = (albumData.AlbumLove.HasValue && albumData.AlbumLove > 0) ? true : false;
             this.dateAlbumLoved = albumData.DateAlbumLoved;
         }
 
@@ -177,12 +183,24 @@ namespace Dopamine.Services.Entities
             set { SetProperty<string>(ref this.subHeader, value); }
         }
 
-        public long? AlbumLove
+        public bool AlbumLove
         {
             get { return this.albumLove; }
             set
             {
-                SetProperty<long?>(ref this.albumLove, value);
+                if (SetProperty<bool>(ref this.albumLove, value)){
+                    long? dateAlbumLoved = null;
+
+                    if (value)
+                    {
+                        dateAlbumLoved = DateTime.Now.Ticks;
+                        this.DateAlbumLoved = dateAlbumLoved;
+                    }
+                    this.RaisePropertyChanged(nameof(this.AlbumLove));
+
+                    // Update AlbumLove in the database
+                    this.metadataService.UpdateAlbumLoveAsync(this.AlbumKey, value, dateAlbumLoved);
+                }
             }
         }
 
@@ -201,9 +219,9 @@ namespace Dopamine.Services.Entities
             this.RaisePropertyChanged(nameof(this.DateLastPlayed));
         }
 
-        public void UpdateAlbumLove(bool love, long? dateAlbumLoved)
+        public void UpdateVisibleAlbumLove(bool love, long? dateAlbumLoved)
         {
-            this.AlbumLove = love ? 1 : 0;
+            this.AlbumLove = love;
             if (love)
             {
                 this.DateAlbumLoved = dateAlbumLoved;

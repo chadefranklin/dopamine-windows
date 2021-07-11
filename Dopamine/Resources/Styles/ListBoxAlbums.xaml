@@ -113,6 +113,16 @@
                                             </EventTrigger>
                                         </pc:SourceChangedImage.Triggers>
                                     </pc:SourceChangedImage>
+                                    <pc:AlbumLoveButton
+                                    Panel.ZIndex="2"
+                                    FontSize="20"
+                                    Margin="5,5,0,0"
+                                    VerticalAlignment="Top" 
+                                    HorizontalAlignment="Left" 
+                                    Foreground="{DynamicResource Brush_PrimaryText}"
+                                    SelectedForeground="{DynamicResource Brush_Accent}"
+                                    Visibility="Visible"
+                                    Love="{Binding AlbumLove, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
                                 </Grid>
                                 <StackPanel Background="{DynamicResource Brush_AlbumTileInfoBackground}" Height="{x:Static base:Constants.AlbumTileAlbumInfoHeight}">
                                     <Grid Margin="6">

@@ -2,6 +2,7 @@
 
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="/Dopamine;component/Themes/AccentTextBox.xaml" />
+        <ResourceDictionary Source="/Dopamine;component/Themes/AlbumLoveButton.xaml" />
         <ResourceDictionary Source="/Dopamine;component/Themes/CombiLabel.xaml" />
         <ResourceDictionary Source="/Dopamine;component/Themes/CrossFadeContentControl.xaml" />
         <ResourceDictionary Source="/Dopamine;component/Themes/IconButton.xaml" />
