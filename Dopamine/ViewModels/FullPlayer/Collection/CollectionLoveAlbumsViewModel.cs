@@ -6,7 +6,6 @@ using Dopamine.Services.Collection;
 using Dopamine.Services.Entities;
 using Dopamine.Services.Indexing;
 using Dopamine.Services.Metadata;
-using Dopamine.Services.Playback;
 using Dopamine.ViewModels.Common.Base;
 using Prism.Commands;
 using Prism.Events;
@@ -22,7 +21,6 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
     public class CollectionLoveAlbumsViewModel : AlbumsViewModelBase
     {
         private IIndexingService indexingService;
-        private IPlaybackService playbackService;
         private ICollectionService collectionService;
         private IEventAggregator eventAggregator;
         private double leftPaneWidthPercent;
@@ -41,7 +39,6 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
         {
             // Dependency injection
             this.indexingService = container.Resolve<IIndexingService>();
-            this.playbackService = container.Resolve<IPlaybackService>();
             this.collectionService = container.Resolve<ICollectionService>();
             this.eventAggregator = container.Resolve<IEventAggregator>();
 
@@ -79,13 +76,9 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
 
             // Cover size
             this.SetCoversizeAsync((CoverSizeType)SettingsClient.Get<int>("CoverSizes", "AlbumsCoverSize"));
-
-            this.playbackService.PlaybackCountersChanged += PlaybackService_PlaybackCountersChanged;
         }
 
-        private IList<AlbumViewModel> SelectiveSelectedAlbums => GetSelectiveSelectedAlbums();
-
-        private IList<AlbumViewModel> GetSelectiveSelectedAlbums()
+        protected override IList<AlbumViewModel> GetSelectiveSelectedAlbums()
         {
             IList<AlbumViewModel> albumViewModels = (this.SelectedAlbums == null || this.SelectedAlbums.Count == 0) ? this.Albums : this.SelectedAlbums;
             return albumViewModels;
@@ -140,69 +133,6 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             base.RefreshLanguage();
         }
 
-        private async void PlaybackService_PlaybackCountersChanged(IList<PlaybackCounter> counters)
-        {
-            if (this.Albums == null || this.AlbumsHolder == null)
-            {
-                return;
-            }
-
-            if (counters == null)
-            {
-                return;
-            }
-
-            if (counters.Count == 0)
-            {
-                return;
-            }
-
-            await Task.Run(async () =>
-            {
-                HashSet<int> albumViewModelsToReorder = new HashSet<int>();
-                HashSet<int> albumViewModelsToAdd = new HashSet<int>();
-
-                for (int i = 0, count = this.AlbumsHolder.Count; i < count; i++)
-                {
-                    if (counters.Select(c => c.AlbumKey).Contains(this.AlbumsHolder[i].AlbumKey))
-                    {
-                        // The UI is only updated if PropertyChanged is fired on the UI thread
-                        PlaybackCounter counter = counters.Where(c => c.AlbumKey.Equals(this.AlbumsHolder[i].AlbumKey)).FirstOrDefault();
-                        Application.Current.Dispatcher.Invoke(() => this.AlbumsHolder[i].UpdateCounters(counter));
-
-                        if (this.Albums.Contains(this.AlbumsHolder[i]))
-                        {
-                            albumViewModelsToReorder.Add(this.Albums.IndexOf(this.AlbumsHolder[i]));
-                        }
-                        else
-                        {
-                            albumViewModelsToAdd.Add(i);
-                        }
-                    }
-                }
-
-
-                if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
-                {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        foreach (int i in albumViewModelsToReorder)
-                        {
-                            this.Albums.Move(i, 0);
-                        }
-                        foreach (int i in albumViewModelsToAdd)
-                        {
-                            this.Albums.Add(this.AlbumsHolder[i]);
-                            this.Albums.Move(this.Albums.Count - 1, 0);
-                        }
-
-                        // Update count
-                        this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count();
-                    });
-                }
-            });
-        }
-
         protected async override void MetadataService_AlbumLoveChangedAsync(AlbumLoveChangedEventArgs e)
         {
             base.MetadataService_AlbumLoveChangedAsync(e);
@@ -212,13 +142,15 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                 return;
             }
 
-            await Task.Run(async () =>
+            await Task.Run(() =>
             {
                 if (e.Love) {
                     // Insert in correct order rather than calling await this.GetAlbumsCommonAsync(this.AlbumsHolder, this.AlbumOrder, true);
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         AlbumViewModel albumToInsert = this.AlbumsHolder.Where(x => x.AlbumKey == e.AlbumKey).FirstOrDefault();
+
+                        if (albumToInsert == null) return;
 
                         int insertIndex;
                         switch (this.AlbumOrder)

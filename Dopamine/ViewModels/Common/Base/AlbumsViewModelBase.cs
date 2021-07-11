@@ -182,6 +182,24 @@ namespace Dopamine.ViewModels.Common.Base
                     await this.SetCoversizeAsync((CoverSizeType)selectedCoverSize);
                 }
             });
+
+            this.playbackService.PlaybackCountersChanged += PlaybackService_PlaybackCountersChanged;
+        }
+
+        protected IList<AlbumViewModel> SelectiveSelectedAlbums => GetSelectiveSelectedAlbums();
+
+        protected virtual IList<AlbumViewModel> GetSelectiveSelectedAlbums()
+        {
+            IList<AlbumViewModel> albumViewModels = null;
+            if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
+            {
+                albumViewModels = (this.SelectedAlbums == null || this.SelectedAlbums.Count == 0) ? this.Albums : this.SelectedAlbums;
+            }
+            else
+            {
+                albumViewModels = this.SelectedAlbums;
+            }
+            return albumViewModels;
         }
 
         public async Task LoadAlbumArtworkAsync(int delayMilliSeconds)
@@ -299,24 +317,28 @@ namespace Dopamine.ViewModels.Common.Base
         {
             if (!selectedArtists.IsNullOrEmpty())
             {
-                await this.GetAlbumsCommonAsync(await this.collectionService.GetArtistAlbumsAsync(selectedArtists, artistType), albumOrder);
+                this.AlbumsHolder = await this.collectionService.GetArtistAlbumsAsync(selectedArtists, artistType);
+                await this.GetAlbumsCommonAsync(this.AlbumsHolder, albumOrder);
 
                 return;
             }
 
-            await this.GetAlbumsCommonAsync(await this.collectionService.GetAllAlbumsAsync(), albumOrder);
+            this.AlbumsHolder = await this.collectionService.GetAllAlbumsAsync();
+            await this.GetAlbumsCommonAsync(this.AlbumsHolder, albumOrder);
         }
 
         protected async Task GetGenreAlbumsAsync(IList<string> selectedGenres, AlbumOrder albumOrder)
         {
             if (!selectedGenres.IsNullOrEmpty())
             {
-                await this.GetAlbumsCommonAsync(await this.collectionService.GetGenreAlbumsAsync(selectedGenres), albumOrder);
+                this.AlbumsHolder = await this.collectionService.GetGenreAlbumsAsync(selectedGenres);
+                await this.GetAlbumsCommonAsync(this.AlbumsHolder, albumOrder);
 
                 return;
             }
 
-            await this.GetAlbumsCommonAsync(await this.collectionService.GetAllAlbumsAsync(), albumOrder);
+            this.AlbumsHolder = await this.collectionService.GetAllAlbumsAsync();
+            await this.GetAlbumsCommonAsync(this.AlbumsHolder, albumOrder);
         }
 
         protected async Task GetAllAlbumsAsync(AlbumOrder albumOrder, bool loveOnly = false)
@@ -590,6 +612,69 @@ namespace Dopamine.ViewModels.Common.Base
             }
         }
 
+        private async void PlaybackService_PlaybackCountersChanged(IList<PlaybackCounter> counters)
+        {
+            if (this.Albums == null || this.AlbumsHolder == null)
+            {
+                return;
+            }
+
+            if (counters == null)
+            {
+                return;
+            }
+
+            if (counters.Count == 0)
+            {
+                return;
+            }
+
+            await Task.Run(() =>
+            {
+                HashSet<int> albumViewModelsToReorder = new HashSet<int>();
+                HashSet<int> albumViewModelsToAdd = new HashSet<int>();
+
+                for (int i = 0, count = this.AlbumsHolder.Count; i < count; i++)
+                {
+                    if (counters.Select(c => c.AlbumKey).Contains(this.AlbumsHolder[i].AlbumKey))
+                    {
+                        // The UI is only updated if PropertyChanged is fired on the UI thread
+                        PlaybackCounter counter = counters.Where(c => c.AlbumKey.Equals(this.AlbumsHolder[i].AlbumKey)).FirstOrDefault();
+                        Application.Current.Dispatcher.Invoke(() => this.AlbumsHolder[i].UpdateCounters(counter));
+
+                        if (this.Albums.Contains(this.AlbumsHolder[i]))
+                        {
+                            albumViewModelsToReorder.Add(this.Albums.IndexOf(this.AlbumsHolder[i]));
+                        }
+                        else
+                        {
+                            albumViewModelsToAdd.Add(i);
+                        }
+                    }
+                }
+
+
+                if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        foreach (int i in albumViewModelsToReorder)
+                        {
+                            this.Albums.Move(i, 0);
+                        }
+                        foreach (int i in albumViewModelsToAdd)
+                        {
+                            this.Albums.Add(this.AlbumsHolder[i]);
+                            this.Albums.Move(this.Albums.Count - 1, 0);
+                        }
+
+                        // Update count
+                        this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count();
+                    });
+                }
+            });
+        }
+
         protected async override void MetadataService_AlbumLoveChangedAsync(AlbumLoveChangedEventArgs e)
         {
             base.MetadataService_AlbumLoveChangedAsync(e);
@@ -599,7 +684,7 @@ namespace Dopamine.ViewModels.Common.Base
                 return;
             }
 
-            await Task.Run(async () =>
+            await Task.Run(() =>
             {
                 foreach (AlbumViewModel vm in this.AlbumsHolder)
                 {
