@@ -110,6 +110,7 @@
                                     <pc:LoveButton 
                                     DataContext="{Binding Items}" 
                                     Margin="0,5,0,0"
+                                    FontSize="20"
                                     VerticalAlignment="Center" 
                                     HorizontalAlignment="Stretch"
                                     Foreground="{DynamicResource Brush_PrimaryText}"
