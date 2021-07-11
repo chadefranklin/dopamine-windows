@@ -221,7 +221,7 @@ namespace Dopamine.Services.Entities
 
         public void UpdateVisibleAlbumLove(bool love, long? dateAlbumLoved)
         {
-            this.AlbumLove = love;
+            this.albumLove = love;
             if (love)
             {
                 this.DateAlbumLoved = dateAlbumLoved;
