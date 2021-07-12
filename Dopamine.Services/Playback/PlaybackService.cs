@@ -667,18 +667,11 @@ namespace Dopamine.Services.Playback
                     int currentTime = this.GetCurrentTime.Seconds;
                     int totalTime = this.GetTotalTime.Seconds;
 
-                    //if (currentTime <= 10)
-                    if (updatedPlaybackCounters)
+                    if (!updatedPlaybackCounters)
                     {
                         // Increase SkipCount
                         await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, false, true);
                     }
-                    else
-                    {
-                        // Increase PlayCount
-                        await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false);
-                    }
-
                 }
                 catch (Exception ex)
                 {
