@@ -403,7 +403,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             this.ClearTracks();
         }
 
-        protected override void FilterLists()
+        protected async override Task FilterLists()
         {
             Application.Current.Dispatcher.Invoke(() =>
             {

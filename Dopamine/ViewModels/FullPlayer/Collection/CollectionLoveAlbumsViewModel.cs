@@ -6,6 +6,7 @@ using Dopamine.Services.Collection;
 using Dopamine.Services.Entities;
 using Dopamine.Services.Indexing;
 using Dopamine.Services.Metadata;
+using Dopamine.Services.Search;
 using Dopamine.ViewModels.Common.Base;
 using Prism.Commands;
 using Prism.Events;
@@ -22,6 +23,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
     {
         private IIndexingService indexingService;
         private ICollectionService collectionService;
+        private ISearchService searchService;
         private IEventAggregator eventAggregator;
         private double leftPaneWidthPercent;
 
@@ -40,6 +42,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             // Dependency injection
             this.indexingService = container.Resolve<IIndexingService>();
             this.collectionService = container.Resolve<ICollectionService>();
+            this.searchService = container.Resolve<ISearchService>();
             this.eventAggregator = container.Resolve<IEventAggregator>();
 
             // Settings
@@ -133,11 +136,80 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             base.RefreshLanguage();
         }
 
+        protected async override void PlaybackService_PlaybackCountersChanged(IList<PlaybackCounter> counters)
+        {
+            if (this.Albums == null || this.AlbumsHolder == null)
+            {
+                return;
+            }
+
+            if (counters == null)
+            {
+                return;
+            }
+
+            if (counters.Count == 0)
+            {
+                return;
+            }
+
+            await Task.Run(() =>
+            {
+                HashSet<int> albumViewModelsToReorder = new HashSet<int>();
+                HashSet<int> albumViewModelsToAdd = new HashSet<int>();
+
+                for (int i = 0, count = this.AlbumsHolder.Count; i < count; i++)
+                {
+                    if (counters.Select(c => c.AlbumKey).Contains(this.AlbumsHolder[i].AlbumKey))
+                    {
+                        // The UI is only updated if PropertyChanged is fired on the UI thread
+                        PlaybackCounter counter = counters.Where(c => c.AlbumKey.Equals(this.AlbumsHolder[i].AlbumKey)).FirstOrDefault();
+                        Application.Current.Dispatcher.Invoke(() => this.AlbumsHolder[i].UpdateCounters(counter));
+
+                        if (this.AlbumsHolder[i].AlbumLove || this.searchService.SearchText != string.Empty) {
+                            if (this.Albums.Contains(this.AlbumsHolder[i]))
+                            {
+                                albumViewModelsToReorder.Add(this.Albums.IndexOf(this.AlbumsHolder[i]));
+                            }
+                            else
+                            {
+                                albumViewModelsToAdd.Add(i);
+                            }
+                        }
+                    }
+                }
+
+
+                if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        foreach (int i in albumViewModelsToReorder)
+                        {
+                            this.Albums.Move(i, 0);
+                        }
+                        foreach (int i in albumViewModelsToAdd)
+                        {
+                            this.Albums.Insert(0, this.AlbumsHolder[i]);
+                        }
+
+                        // Update count
+                        this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count();
+                    });
+                }
+            });
+        }
+
         protected async override void MetadataService_AlbumLoveChangedAsync(AlbumLoveChangedEventArgs e)
         {
             base.MetadataService_AlbumLoveChangedAsync(e);
 
             if (this.Albums == null || this.AlbumsHolder == null)
+            {
+                return;
+            }
+
+            if (this.searchService.SearchText != string.Empty) // nothing below should apply when we are searching
             {
                 return;
             }

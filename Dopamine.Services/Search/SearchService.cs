@@ -8,6 +8,7 @@ namespace Dopamine.Services.Search
     public class SearchService : ISearchService
     {
         private string searchText = string.Empty;
+        private string lastSearchText = string.Empty;
         private Timer searchTimer;
         private double searchTimeoutSeconds = Constants.SearchTimeoutSeconds;
       
@@ -24,7 +25,14 @@ namespace Dopamine.Services.Search
                 if (isTextChanged) this.StartSearchTimer();
             }
         }
-       
+
+        public string LastSearchText
+        {
+            // Make sure we never return null
+            get { return this.lastSearchText != null ? this.lastSearchText : string.Empty; }
+            set { this.lastSearchText = value; }
+        }
+
         public event Action<string> DoSearch = delegate { };
        
         private void StartSearchTimer()
@@ -50,6 +58,7 @@ namespace Dopamine.Services.Search
             {
                 DoSearch(this.searchText);
             }
+            LastSearchText = this.searchText;
         }
     }
 }

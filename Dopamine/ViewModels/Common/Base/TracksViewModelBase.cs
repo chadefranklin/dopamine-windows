@@ -433,7 +433,7 @@ namespace Dopamine.ViewModels.Common.Base
             }
         }
 
-        protected override void FilterLists()
+        protected async override Task FilterLists()
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
