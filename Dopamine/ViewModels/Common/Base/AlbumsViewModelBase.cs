@@ -662,13 +662,16 @@ namespace Dopamine.ViewModels.Common.Base
                         PlaybackCounter counter = counters.Where(c => c.AlbumKey.Equals(this.AlbumsHolder[i].AlbumKey)).FirstOrDefault();
                         Application.Current.Dispatcher.Invoke(() => this.AlbumsHolder[i].UpdateCounters(counter));
 
-                        if (this.Albums.Contains(this.AlbumsHolder[i]))
+                        if (counter.PlayCountIncremented)
                         {
-                            albumViewModelsToReorder.Add(this.Albums.IndexOf(this.AlbumsHolder[i]));
-                        }
-                        else
-                        {
-                            albumViewModelsToAdd.Add(i);
+                            if (this.Albums.Contains(this.AlbumsHolder[i]))
+                            {
+                                albumViewModelsToReorder.Add(this.Albums.IndexOf(this.AlbumsHolder[i]));
+                            }
+                            else
+                            {
+                                albumViewModelsToAdd.Add(i);
+                            }
                         }
                     }
                 }

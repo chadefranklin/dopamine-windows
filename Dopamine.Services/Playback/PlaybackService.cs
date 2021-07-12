@@ -990,6 +990,7 @@ namespace Dopamine.Services.Playback
                         if (incrementPlayCount)
                         {
                             this.playbackCounters[path].PlayCount += 1;
+                            this.playbackCounters[path].PlayCountIncremented = true;
                             this.playbackCounters[path].DateLastPlayed = DateTime.Now.Ticks;
                         }
                         if (incrementSkipCount)
@@ -1274,7 +1275,6 @@ namespace Dopamine.Services.Playback
             this.context.Post(new SendOrPostCallback(async (state) =>
             {
                 LogClient.Info("Track finished: {0}", this.CurrentTrack.Path);
-                //await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false); // Increase PlayCount
                 if (!updatedPlaybackCounters)
                 {
                     await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false); // Increase PlayCount

@@ -15,5 +15,8 @@ namespace Dopamine.Data
         public string SafePath { get; set; }
 
         public string AlbumKey { get; set; }
+
+        [SQLite.Ignore]
+        public bool PlayCountIncremented { get; set; }
     }
 }
