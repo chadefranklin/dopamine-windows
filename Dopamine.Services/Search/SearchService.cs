@@ -54,11 +54,13 @@ namespace Dopamine.Services.Search
         private void SearchTimoutHandler(object sender, ElapsedEventArgs e)
         {
             this.searchTimer.Stop();
-            if (DoSearch != null)
-            {
-                DoSearch(this.searchText);
+            if (this.searchText != this.lastSearchText) {
+                if (DoSearch != null)
+                {
+                    DoSearch(this.searchText);
+                }
+                LastSearchText = this.searchText;
             }
-            LastSearchText = this.searchText;
         }
     }
 }

@@ -546,7 +546,7 @@ namespace Dopamine.ViewModels.Common.Base
                 await this.GetAlbumsCommonAsync(this.albumsHolder, this.AlbumOrder);
                 await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
 
-                return;// don't need to call "View.Refresh();" when GetAlbumsCommonAsync() will do that already
+                return; // don't need to call "View.Refresh();" when GetAlbumsCommonAsync() will do that already
             }
 
 
