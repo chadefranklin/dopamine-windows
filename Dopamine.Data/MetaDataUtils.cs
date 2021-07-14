@@ -150,7 +150,7 @@ namespace Dopamine.Data
             track.AlbumKey = GenerateInitialAlbumKey(track.AlbumTitle, track.AlbumArtists);
         }
 
-        public static void FillTrack(FileMetadata fileMetadata, ref Track track)
+        public static void FillTrack(FileMetadata fileMetadata, ref Track track, bool update = false)
         {
             string path = fileMetadata.Path;
             long nowTicks = DateTime.Now.Ticks;
@@ -167,7 +167,7 @@ namespace Dopamine.Data
             track.FileSize = FileUtils.SizeInBytes(path);
             track.DateFileCreated = FileUtils.DateCreatedTicks(path);
             track.DateFileModified = FileUtils.DateModifiedTicks(path);
-            track.DateAdded = nowTicks;
+            if(!update) track.DateAdded = nowTicks;
             track.DateLastSynced = nowTicks;
             track.Rating = fileMetadata.Rating.Value;
 

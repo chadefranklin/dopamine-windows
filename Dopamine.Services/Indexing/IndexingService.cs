@@ -465,7 +465,7 @@ namespace Dopamine.Services.Indexing
                             {
                                 if (IndexerUtils.IsTrackOutdated(dbTrack) | dbTrack.NeedsIndexing == 1)
                                 {
-                                    this.ProcessTrack(dbTrack, conn);
+                                    this.ProcessTrack(dbTrack, conn, true);
                                     conn.Update(dbTrack);
                                     numberUpdatedTracks += 1;
                                 }
@@ -588,11 +588,11 @@ namespace Dopamine.Services.Indexing
             return numberAddedTracks;
         }
 
-        private void ProcessTrack(Track track, SQLiteConnection conn)
+        private void ProcessTrack(Track track, SQLiteConnection conn, bool update = false)
         {
             try
             {
-                MetadataUtils.FillTrack(new FileMetadata(track.Path), ref track);
+                MetadataUtils.FillTrack(new FileMetadata(track.Path), ref track, update);
 
                 track.IndexingSuccess = 1;
 
