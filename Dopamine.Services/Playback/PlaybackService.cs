@@ -83,7 +83,9 @@ namespace Dopamine.Services.Playback
         private System.Diagnostics.Stopwatch updatePlaybackCountersStopwatch = new System.Diagnostics.Stopwatch();
         private double updatePlaybackCountersTimerTimeRemainingAfterPause;
         private bool updatedPlaybackCounters;
+        private double updatePlaybackCountersStopwatchTotalMillisecondsAtLastPause;
 
+        private TimeSpan currentTrackTotalTime;
 
 
         public bool IsSavingQueuedTracks => this.isSavingQueuedTracks;
@@ -664,9 +666,6 @@ namespace Dopamine.Services.Playback
             {
                 try
                 {
-                    int currentTime = this.GetCurrentTime.Seconds;
-                    int totalTime = this.GetTotalTime.Seconds;
-
                     if (!updatedPlaybackCounters)
                     {
                         // Increase SkipCount
@@ -957,12 +956,10 @@ namespace Dopamine.Services.Playback
             this.updatePlaybackCountersStopwatch.Stop();
 
             await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false); // Increase PlayCount
-            updatedPlaybackCounters = true;
         }
 
         private async Task UpdatePlaybackCountersAsync(string path, bool incrementPlayCount, bool incrementSkipCount)
         {
-
             if (!this.playbackCounters.ContainsKey(path))
             {
                 // Try to find an existing counter
@@ -1006,6 +1003,8 @@ namespace Dopamine.Services.Playback
             });
 
             this.ResetSavePlaybackCountersTimer();
+
+            updatedPlaybackCounters = true;
         }
 
         private async Task PauseAsync(bool isSilent = false)
@@ -1021,7 +1020,8 @@ namespace Dopamine.Services.Playback
                     {
                         this.updatePlaybackCountersTimer.Stop();
                         this.updatePlaybackCountersStopwatch.Stop();
-                        updatePlaybackCountersTimerTimeRemainingAfterPause = updatePlaybackCountersTimer.Interval - updatePlaybackCountersStopwatch.Elapsed.TotalMilliseconds;
+                        this.updatePlaybackCountersTimerTimeRemainingAfterPause = this.updatePlaybackCountersTimer.Interval - (this.updatePlaybackCountersStopwatch.Elapsed.TotalMilliseconds - updatePlaybackCountersStopwatchTotalMillisecondsAtLastPause);
+                        this.updatePlaybackCountersStopwatchTotalMillisecondsAtLastPause = this.updatePlaybackCountersStopwatch.Elapsed.TotalMilliseconds;
                     }
                 }
             }
@@ -1053,7 +1053,7 @@ namespace Dopamine.Services.Playback
                         this.updatePlaybackCountersTimer.Interval = updatePlaybackCountersTimerTimeRemainingAfterPause;
                         updatePlaybackCountersTimerTimeRemainingAfterPause = 0;
                         this.updatePlaybackCountersTimer.Start();
-                        this.updatePlaybackCountersStopwatch.Restart();
+                        this.updatePlaybackCountersStopwatch.Start();
                     }
                 }
             }
@@ -1114,8 +1114,11 @@ namespace Dopamine.Services.Playback
 
             updatedPlaybackCounters = false;
             this.updatePlaybackCountersTimer.Interval = TimeSpan.FromSeconds(this.updatePlaybackCountersTimeoutSeconds).TotalMilliseconds;
-            this.updatePlaybackCountersTimer.Start(); // don't think i need to stop first...
+            this.updatePlaybackCountersTimer.Start();
             this.updatePlaybackCountersStopwatch.Restart();
+
+            updatePlaybackCountersStopwatchTotalMillisecondsAtLastPause = 0;
+            currentTrackTotalTime = this.player.GetTotalTime();
 
             // Hook up the Stopped event
             this.player.PlaybackInterrupted += this.PlaybackInterruptedHandler;
@@ -1277,7 +1280,16 @@ namespace Dopamine.Services.Playback
                 LogClient.Info("Track finished: {0}", this.CurrentTrack.Path);
                 if (!updatedPlaybackCounters)
                 {
-                    await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false); // Increase PlayCount
+                    // This is for if the track total time is less than updatePlaybackCountersTimeoutSeconds. If so, update play count if played more than 50% of the track. Else, update skip count?
+                    // Should skimming through a song and having it finish in under (updatePlaybackCountersTimeoutSeconds) seconds be considered a skip?
+                    if (this.updatePlaybackCountersStopwatch.Elapsed.TotalSeconds > currentTrackTotalTime.TotalSeconds * 0.5)
+                    {
+                        await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false); // Increase PlayCount
+                    }
+                    else
+                    {
+                        await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, false, true); // Increase SkipCount
+                    }
                 }
                 await this.TryPlayNextAsync(false);
             }), null);
