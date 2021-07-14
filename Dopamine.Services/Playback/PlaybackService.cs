@@ -1211,7 +1211,7 @@ namespace Dopamine.Services.Playback
         {
             this.isPlayingPreviousTrack = true;
 
-            if (this.GetCurrentTime.Seconds > 3)
+            if (this.GetCurrentTime.TotalSeconds > 3)
             {
                 // If we're more than 3 seconds into the Track, try to
                 // jump to the beginning of the current Track.
