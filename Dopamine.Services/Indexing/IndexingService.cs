@@ -186,7 +186,6 @@ namespace Dopamine.Services.Indexing
                         if (SettingsClient.Get<bool>("Indexing", "RefreshCollectionAutomatically"))
                         {
                             this.AddArtworkInBackgroundAsync();
-                            this.AddAlbumsInBackgroundAsync();
 
                             await this.watcherManager.StartWatchingAsync();
                         }
@@ -222,6 +221,8 @@ namespace Dopamine.Services.Indexing
             // ---------------
             bool isArtworkCleanedUp = await this.CleanupArtworkAsync();
 
+            await this.AddAlbumsInBackgroundAsync(); // I don't think this is worth adding a new indexing status for.
+
             // Refresh lists
             // -------------
             if (isTracksChanged || isArtworkCleanedUp)
@@ -234,10 +235,8 @@ namespace Dopamine.Services.Indexing
             // --------
             this.isIndexing = false;
             this.IndexingStopped(this, new EventArgs());
-
+            
             this.AddArtworkInBackgroundAsync();
-
-            this.AddAlbumsInBackgroundAsync();
 
             if (SettingsClient.Get<bool>("Indexing", "RefreshCollectionAutomatically"))
             {
@@ -863,7 +862,7 @@ namespace Dopamine.Services.Indexing
             return allFolderPaths;
         }
 
-        private async void AddAlbumsInBackgroundAsync()
+        private async Task AddAlbumsInBackgroundAsync()
         {
             LogClient.Info("+++ STARTED ADDING ALBUMS IN THE BACKGROUND +++");
 
