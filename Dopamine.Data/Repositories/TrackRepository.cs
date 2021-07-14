@@ -21,7 +21,7 @@ namespace Dopamine.Data.Repositories
 
         private string SelectVisibleTracksQuery()
         {
-            return @"SELECT DISTINCT t.TrackID, t.Artists, t.Genres, t.AlbumTitle, t.AlbumArtists, t.AlbumKey,
+            return @"SELECT DISTINCT t.TrackID, t.Artists, t.Composers, t.Genres, t.AlbumTitle, t.AlbumArtists, t.AlbumKey,
                      t.Path, t.SafePath, t.FileName, t.MimeType, t.FileSize, t.BitRate, 
                      t.SampleRate, t.TrackTitle, t.TrackNumber, t.TrackCount, t.DiscNumber,
                      t.DiscCount, t.Duration, t.Year, t.HasLyrics, t.DateAdded, t.DateFileCreated,

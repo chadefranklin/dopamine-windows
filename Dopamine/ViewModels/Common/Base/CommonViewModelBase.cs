@@ -223,7 +223,7 @@ namespace Dopamine.ViewModels.Common.Base
                     ResourceUtils.GetString("Language_Information"),
                     view,
                     400,
-                    620,
+                    640,
                     true,
                     true,
                     true,

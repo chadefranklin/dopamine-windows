@@ -144,6 +144,7 @@ namespace Dopamine.Data
             track.DiscCount = SafeConvertToLong(fileMetadata.DiscCount.Value);
             track.HasLyrics = string.IsNullOrWhiteSpace(fileMetadata.Lyrics.Value) ? 0 : 1;
             track.Artists = GetMultiValueTags(fileMetadata.Artists);
+            track.Composers = GetMultiValueTags(fileMetadata.Composers);
             track.Genres = GetMultiValueTags(fileMetadata.Genres);
             track.AlbumTitle = GetAlbumTitle(fileMetadata);
             track.AlbumArtists = GetMultiValueTags(fileMetadata.AlbumArtists);

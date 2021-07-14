@@ -11,6 +11,8 @@ namespace Dopamine.Data.Entities
 
         public string Artists { get; set; }
 
+        public string Composers { get; set; }
+
         public string Genres { get; set; }
 
         public string AlbumTitle { get; set; }

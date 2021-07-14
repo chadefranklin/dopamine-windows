@@ -1091,6 +1091,10 @@ namespace Dopamine.Data
                              "AlbumLove	        INTEGER," +
                              "DateAlbumLoved	INTEGER);");
 
+                conn.Execute("ALTER TABLE Track ADD Composers TEXT;");
+
+                conn.Execute("UPDATE Track SET NeedsIndexing=1;");
+
                 conn.Execute("COMMIT;");
                 conn.Execute("VACUUM;");
             }

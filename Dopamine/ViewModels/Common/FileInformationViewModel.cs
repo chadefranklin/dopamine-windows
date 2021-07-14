@@ -17,6 +17,7 @@ namespace Dopamine.ViewModels.Common
         // Song
         private string songTitle;
         private string songArtists;
+        private string songComposers;
         private string songAlbum;
         private string songYear;
         private string songGenres;
@@ -45,6 +46,12 @@ namespace Dopamine.ViewModels.Common
         {
             get { return this.songArtists; }
             set { SetProperty<string>(ref this.songArtists, value); }
+        }
+
+        public string SongComposers
+        {
+            get { return this.songComposers; }
+            set { SetProperty<string>(ref this.songComposers, value); }
         }
 
         public string SongAlbum
@@ -133,7 +140,9 @@ namespace Dopamine.ViewModels.Common
             this.GetFileMetadata(path);
             this.GetFileInformation(path);
         }
-    
+
+        public bool SongHasComposers => !string.IsNullOrEmpty(this.SongComposers);
+
         private void GetFileMetadata(string path)
         {
             try
@@ -148,6 +157,7 @@ namespace Dopamine.ViewModels.Common
                 this.SongTitle = fm.Title.Value;
                 this.SongAlbum = fm.Album.Value;
                 this.SongArtists = string.Join(", ", fm.Artists.Values);
+                this.SongComposers = string.Join(", ", fm.Composers.Values);
                 this.SongGenres = string.Join(", ", fm.Genres.Values);
                 this.SongYear = fm.Year.Value.ToString();
                 this.SongTrackNumber = fm.TrackNumber.Value.ToString();

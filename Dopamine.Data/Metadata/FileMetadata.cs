@@ -13,6 +13,7 @@ namespace Dopamine.Data.Metadata
         private MetadataValue album;
         private MetadataValue albumArtists;
         private MetadataValue artists;
+        private MetadataValue composers;
         private MetadataValue genres;
         private MetadataValue comment;
         private MetadataValue grouping;
@@ -119,6 +120,23 @@ namespace Dopamine.Data.Metadata
                 {
                     this.artists = value;
                     this.file.Tag.Performers = value.Values;
+                }
+            }
+        }
+
+        public MetadataValue Composers
+        {
+            get
+            {
+                if (this.composers == null) this.composers = new MetadataValue(this.file.Tag.Composers);
+                return this.composers;
+            }
+            set
+            {
+                if (value.IsValueChanged)
+                {
+                    this.composers = value;
+                    this.file.Tag.Composers = value.Values;
                 }
             }
         }
