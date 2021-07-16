@@ -59,8 +59,6 @@ namespace Dopamine.ViewModels.Common.Base
         public DelegateCommand LoadedCommand { get; set; }
         public DelegateCommand UnloadedCommand { get; set; }
 
-        public DelegateCommand AlbumsSelectNoneCommand { get; set; }
-
         public string TotalSizeInformation => this.totalSize > 0 ? FormatUtils.FormatFileSize(this.totalSize, false) : string.Empty;
         public string TotalDurationInformation => this.totalDuration > 0 ? FormatUtils.FormatDuration(this.totalDuration) : string.Empty;
         public string TrackOrderText => this.trackOrderText;

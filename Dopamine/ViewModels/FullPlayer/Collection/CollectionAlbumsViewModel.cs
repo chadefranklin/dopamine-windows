@@ -43,14 +43,14 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                 {
                     this.EnableRating = (bool)e.Entry.Value;
                     this.SetTrackOrder("AlbumsTrackOrder");
-                    await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
+                    await this.GetTracksAsync(null, null, SelectedAlbums, this.TrackOrder);
                 }
 
                 if (SettingsClient.IsSettingChanged(e, "Behaviour", "EnableLove"))
                 {
                     this.EnableLove = (bool)e.Entry.Value;
                     this.SetTrackOrder("AlbumsTrackOrder");
-                    await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
+                    await this.GetTracksAsync(null, null, SelectedAlbums, this.TrackOrder);
                 }
             };
 
@@ -97,9 +97,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
         protected async override Task FillListsAsync()
         {
             await this.GetAllAlbumsAsync(this.AlbumOrder);
-            await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
-
-            lastAlbumsSelectNoneAlbumOrder = this.AlbumOrder;
+            await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
         }
 
         protected async override Task EmptyListsAsync()
@@ -112,8 +110,13 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
         {
             await base.SelectedAlbumsHandlerAsync(parameter);
 
+            //if (this.SelectedAlbums == null || this.SelectedAlbums.Count == 0)
+            //{
+            //    this.SetSelectedAlbumsToView();
+            //}
+
             this.SetTrackOrder("AlbumsTrackOrder");
-            await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
+            await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
         }
 
         protected override void RefreshLanguage()

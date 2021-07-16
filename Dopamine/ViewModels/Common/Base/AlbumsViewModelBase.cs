@@ -51,9 +51,6 @@ namespace Dopamine.ViewModels.Common.Base
         private double albumHeight;
         private CoverSizeType selectedCoverSize;
 
-        private bool albumsSelectNoneEnabled = false;
-        protected AlbumOrder lastAlbumsSelectNoneAlbumOrder;
-
         public DelegateCommand ToggleAlbumOrderCommand { get; set; }
 
         public DelegateCommand<string> AddAlbumsToPlaylistCommand { get; set; }
@@ -157,7 +154,6 @@ namespace Dopamine.ViewModels.Common.Base
             this.AddAlbumsToNowPlayingCommand = new DelegateCommand(async () => await this.AddAlbumsToNowPlayingAsync(this.SelectedAlbums));
             this.DelaySelectedAlbumsCommand = new DelegateCommand(() => this.delaySelectedAlbums = true);
             this.ShuffleAllCommand = new DelegateCommand(async () => await this.playbackService.EnqueueAlbumsAsync(this.AlbumsCvs != null ? this.AlbumsCvs.View.Cast<AlbumViewModel>().ToList() : null, true, false));
-            this.AlbumsSelectNoneCommand = new DelegateCommand(async () => await this.AlbumsSelectNone());
 
             // Events
             this.indexingService.AlbumArtworkAdded += async (_, e) => await this.RefreshAlbumArtworkAsync(e.AlbumKeys);
@@ -182,33 +178,6 @@ namespace Dopamine.ViewModels.Common.Base
             });
 
             this.playbackService.PlaybackCountersChanged += PlaybackService_PlaybackCountersChanged;
-        }
-
-        protected IList<AlbumViewModel> SelectiveSelectedAlbums => GetSelectiveSelectedAlbums();
-
-        protected virtual IList<AlbumViewModel> GetSelectiveSelectedAlbums()
-        {
-            IList<AlbumViewModel> albumViewModels = null;
-            if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
-            {
-                albumViewModels = (this.SelectedAlbums == null || this.SelectedAlbums.Count == 0) ? (this.AlbumsCvs != null ? this.AlbumsCvs.View.Cast<AlbumViewModel>().ToList() : this.SelectedAlbums) : this.SelectedAlbums;
-            }
-            else
-            {
-                albumViewModels = this.SelectedAlbums;
-            }
-            return albumViewModels;
-        }
-
-        private async Task AlbumsSelectNone()
-        {
-            if (albumsSelectNoneEnabled && ((this.AlbumOrder != AlbumOrder.ByDateLastPlayed && this.lastAlbumsSelectNoneAlbumOrder == AlbumOrder.ByDateLastPlayed) || (this.AlbumOrder == AlbumOrder.ByDateLastPlayed && this.lastAlbumsSelectNoneAlbumOrder != AlbumOrder.ByDateLastPlayed))) {
-                albumsSelectNoneEnabled = false;
-                lastAlbumsSelectNoneAlbumOrder = this.AlbumOrder;
-
-                this.SetTrackOrder("AlbumsTrackOrder");
-                await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
-            }
         }
 
         public async Task LoadAlbumArtworkAsync(int delayMilliSeconds)
@@ -512,19 +481,9 @@ namespace Dopamine.ViewModels.Common.Base
             {
                 this.SelectedAlbums = new List<AlbumViewModel>();
 
-                IList selectedAlbums = (IList)parameter;
-
-                foreach (AlbumViewModel item in selectedAlbums)
+                foreach (AlbumViewModel item in (IList)parameter)
                 {
                     this.SelectedAlbums.Add(item);
-                }
-
-                if (selectedAlbums == null || selectedAlbums.Count == 0)
-                {
-                    lastAlbumsSelectNoneAlbumOrder = this.AlbumOrder;
-                } else
-                {
-                    albumsSelectNoneEnabled = false;
                 }
             }
         }
@@ -621,8 +580,6 @@ namespace Dopamine.ViewModels.Common.Base
                     this.AlbumOrder = AlbumOrder.Alphabetical;
                     break;
             }
-
-            if(this.SelectedAlbums == null || this.SelectedAlbums.Count == 0) albumsSelectNoneEnabled = true;
         }
 
         protected async virtual void PlaybackService_PlaybackCountersChanged(IList<PlaybackCounter> counters)
