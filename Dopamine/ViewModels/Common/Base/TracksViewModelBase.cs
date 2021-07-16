@@ -176,8 +176,6 @@ namespace Dopamine.ViewModels.Common.Base
 
         protected async Task GetTracksAsync(IList<string> artists, IList<string> genres, IList<AlbumViewModel> albumViewModels, TrackOrder trackOrder)
         {
-            Console.WriteLine("GetTracksAsync");
-
             IList<Track> tracks = null;
 
             if (albumViewModels != null && albumViewModels.Count > 0)
@@ -200,8 +198,6 @@ namespace Dopamine.ViewModels.Common.Base
                 // Tracks have lowest priority
                 tracks = await this.trackRepository.GetTracksAsync();
             }
-
-            Console.WriteLine(tracks.Count);
 
             await this.GetTracksCommonAsync(await this.container.ResolveTrackViewModelsAsync(tracks), trackOrder);
         }
@@ -297,7 +293,7 @@ namespace Dopamine.ViewModels.Common.Base
                 // Group by Album if needed
                 if (this.TrackOrder == TrackOrder.ByAlbum)
                 {
-                    this.TracksCvs.GroupDescriptions.Add(new PropertyGroupDescription("GroupHeader"));
+                    this.TracksCvs.GroupDescriptions.Add(new PropertyGroupDescription("AlbumKeyGrouper"));
                 }
             });
 
