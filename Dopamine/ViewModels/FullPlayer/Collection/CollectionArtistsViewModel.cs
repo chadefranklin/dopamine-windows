@@ -462,7 +462,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             base.ToggleAlbumOrder();
 
             SettingsClient.Set<int>("Ordering", "ArtistsAlbumOrder", (int)this.AlbumOrder);
-            await this.GetAlbumsCommonAsync(this.AlbumsHolder, this.AlbumOrder);
+            await this.GetAlbumsCommonAsync(this.Albums, this.AlbumOrder);
         }
 
         protected async override Task SetCoversizeAsync(CoverSizeType coverSize)
@@ -476,6 +476,8 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             await this.GetArtistsAsync(this.ArtistType);
             await this.GetArtistAlbumsAsync(this.SelectedArtists, this.ArtistType, this.AlbumOrder);
             await this.GetTracksAsync(this.SelectedArtists, null, SelectiveSelectedAlbums, this.TrackOrder);
+
+            lastAlbumsSelectNoneAlbumOrder = this.AlbumOrder;
         }
 
         protected async override Task EmptyListsAsync()

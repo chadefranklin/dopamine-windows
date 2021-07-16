@@ -40,7 +40,6 @@ namespace Dopamine.ViewModels.Common.Base
         private IIndexingService indexingService;
         private IAlbumArtworkRepository albumArtworkRepository;
         private ObservableCollection<AlbumViewModel> albums;
-        private IList<AlbumViewModel> albumsHolder;
         private CollectionViewSource albumsCvs;
         private IList<AlbumViewModel> selectedAlbums;
         private bool delaySelectedAlbums;
@@ -51,6 +50,9 @@ namespace Dopamine.ViewModels.Common.Base
         private double albumWidth;
         private double albumHeight;
         private CoverSizeType selectedCoverSize;
+
+        private bool albumsSelectNoneEnabled = false;
+        protected AlbumOrder lastAlbumsSelectNoneAlbumOrder;
 
         public DelegateCommand ToggleAlbumOrderCommand { get; set; }
 
@@ -102,12 +104,6 @@ namespace Dopamine.ViewModels.Common.Base
             set { SetProperty<ObservableCollection<AlbumViewModel>>(ref this.albums, value); }
         }
 
-        public IList<AlbumViewModel> AlbumsHolder
-        {
-            get { return this.albumsHolder; }
-            set { SetProperty<IList<AlbumViewModel>>(ref this.albumsHolder, value); }
-        }
-
         public CollectionViewSource AlbumsCvs
         {
             get { return this.albumsCvs; }
@@ -155,12 +151,13 @@ namespace Dopamine.ViewModels.Common.Base
 
             // Commands
             this.ToggleAlbumOrderCommand = new DelegateCommand(() => this.ToggleAlbumOrder());
-            this.ShuffleSelectedAlbumsCommand = new DelegateCommand(async () => await this.playbackService.EnqueueAlbumsAsync(this.SelectiveSelectedAlbums, true, false));
-            this.AddAlbumsToPlaylistCommand = new DelegateCommand<string>(async (playlistName) => await this.AddAlbumsToPlaylistAsync(this.SelectiveSelectedAlbums, playlistName));
+            this.ShuffleSelectedAlbumsCommand = new DelegateCommand(async () => await this.playbackService.EnqueueAlbumsAsync(this.SelectedAlbums, true, false));
+            this.AddAlbumsToPlaylistCommand = new DelegateCommand<string>(async (playlistName) => await this.AddAlbumsToPlaylistAsync(this.SelectedAlbums, playlistName));
             this.EditAlbumCommand = new DelegateCommand(() => this.EditSelectedAlbum(), () => !this.IsIndexing);
-            this.AddAlbumsToNowPlayingCommand = new DelegateCommand(async () => await this.AddAlbumsToNowPlayingAsync(this.SelectiveSelectedAlbums));
+            this.AddAlbumsToNowPlayingCommand = new DelegateCommand(async () => await this.AddAlbumsToNowPlayingAsync(this.SelectedAlbums));
             this.DelaySelectedAlbumsCommand = new DelegateCommand(() => this.delaySelectedAlbums = true);
-            this.ShuffleAllCommand = new DelegateCommand(async () => await this.playbackService.EnqueueAlbumsAsync(this.AlbumsCvs.View.Cast<AlbumViewModel>().ToList(), true, false));
+            this.ShuffleAllCommand = new DelegateCommand(async () => await this.playbackService.EnqueueAlbumsAsync(this.AlbumsCvs != null ? this.AlbumsCvs.View.Cast<AlbumViewModel>().ToList() : null, true, false));
+            this.AlbumsSelectNoneCommand = new DelegateCommand(async () => await this.AlbumsSelectNone());
 
             // Events
             this.indexingService.AlbumArtworkAdded += async (_, e) => await this.RefreshAlbumArtworkAsync(e.AlbumKeys);
@@ -194,13 +191,24 @@ namespace Dopamine.ViewModels.Common.Base
             IList<AlbumViewModel> albumViewModels = null;
             if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
             {
-                albumViewModels = (this.SelectedAlbums == null || this.SelectedAlbums.Count == 0) ? this.Albums : this.SelectedAlbums;
+                albumViewModels = (this.SelectedAlbums == null || this.SelectedAlbums.Count == 0) ? (this.AlbumsCvs != null ? this.AlbumsCvs.View.Cast<AlbumViewModel>().ToList() : this.SelectedAlbums) : this.SelectedAlbums;
             }
             else
             {
                 albumViewModels = this.SelectedAlbums;
             }
             return albumViewModels;
+        }
+
+        private async Task AlbumsSelectNone()
+        {
+            if (albumsSelectNoneEnabled && ((this.AlbumOrder != AlbumOrder.ByDateLastPlayed && this.lastAlbumsSelectNoneAlbumOrder == AlbumOrder.ByDateLastPlayed) || (this.AlbumOrder == AlbumOrder.ByDateLastPlayed && this.lastAlbumsSelectNoneAlbumOrder != AlbumOrder.ByDateLastPlayed))) {
+                albumsSelectNoneEnabled = false;
+                lastAlbumsSelectNoneAlbumOrder = this.AlbumOrder;
+
+                this.SetTrackOrder("AlbumsTrackOrder");
+                await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
+            }
         }
 
         public async Task LoadAlbumArtworkAsync(int delayMilliSeconds)
@@ -221,11 +229,11 @@ namespace Dopamine.ViewModels.Common.Base
 
         private async Task SetAlbumArtwork(IList<AlbumArtwork> allAlbumArtwork, IList<string> albumsKeys = null)
         {
-            if (this.albumsHolder != null && this.albumsHolder.Count > 0)
+            if (this.albums != null && this.albums.Count > 0)
             {
                 await Task.Run(() =>
                 {
-                    foreach (AlbumViewModel alb in this.albumsHolder)
+                    foreach (AlbumViewModel alb in this.albums)
                     {
                         try
                         {
@@ -277,7 +285,26 @@ namespace Dopamine.ViewModels.Common.Base
         private void AlbumsCvs_Filter(object sender, FilterEventArgs e)
         {
             AlbumViewModel avm = e.Item as AlbumViewModel;
-            e.Accepted = Services.Utils.EntityUtils.FilterAlbums(avm, this.searchService.SearchText);
+
+            // If searching, disregard second filter. If not searching, no need for main filter.
+            if (string.IsNullOrEmpty(this.searchService.SearchText))
+            {
+                e.Accepted = PassedSecondaryAlbumFilter(avm);
+            } else
+            {
+                e.Accepted = Services.Utils.EntityUtils.FilterAlbums(avm, this.searchService.SearchText);
+            }
+        }
+
+        protected virtual bool PassedSecondaryAlbumFilter(AlbumViewModel avm)
+        {
+            switch (this.AlbumOrder)
+            {
+                case AlbumOrder.ByDateLastPlayed:
+                    return avm.DateLastPlayed.HasValue;
+                default:
+                    return true;
+            }
         }
 
         protected void UpdateAlbumOrderText(AlbumOrder albumOrder)
@@ -318,34 +345,29 @@ namespace Dopamine.ViewModels.Common.Base
         {
             if (!selectedArtists.IsNullOrEmpty())
             {
-                this.AlbumsHolder = await this.collectionService.GetArtistAlbumsAsync(selectedArtists, artistType);
-                await this.GetAlbumsCommonAsync(this.AlbumsHolder, albumOrder);
+                await this.GetAlbumsCommonAsync(await this.collectionService.GetArtistAlbumsAsync(selectedArtists, artistType), albumOrder);
 
                 return;
             }
 
-            this.AlbumsHolder = await this.collectionService.GetAllAlbumsAsync();
-            await this.GetAlbumsCommonAsync(this.AlbumsHolder, albumOrder);
+            await this.GetAlbumsCommonAsync(await this.collectionService.GetAllAlbumsAsync(), albumOrder);
         }
 
         protected async Task GetGenreAlbumsAsync(IList<string> selectedGenres, AlbumOrder albumOrder)
         {
             if (!selectedGenres.IsNullOrEmpty())
             {
-                this.AlbumsHolder = await this.collectionService.GetGenreAlbumsAsync(selectedGenres);
-                await this.GetAlbumsCommonAsync(this.AlbumsHolder, albumOrder);
+                await this.GetAlbumsCommonAsync(await this.collectionService.GetGenreAlbumsAsync(selectedGenres), albumOrder);
 
                 return;
             }
 
-            this.AlbumsHolder = await this.collectionService.GetAllAlbumsAsync();
-            await this.GetAlbumsCommonAsync(this.AlbumsHolder, albumOrder);
+            await this.GetAlbumsCommonAsync(await this.collectionService.GetAllAlbumsAsync(), albumOrder);
         }
 
         protected async Task GetAllAlbumsAsync(AlbumOrder albumOrder, bool loveOnly = false)
         {
-            this.AlbumsHolder = await this.collectionService.GetAllAlbumsAsync();
-            await this.GetAlbumsCommonAsync(this.AlbumsHolder, albumOrder, loveOnly);
+            await this.GetAlbumsCommonAsync(await this.collectionService.GetAllAlbumsAsync(), albumOrder, loveOnly);
         }
 
         protected void ClearAlbums()
@@ -371,34 +393,7 @@ namespace Dopamine.ViewModels.Common.Base
                 IList<AlbumViewModel> orderedAlbums = await this.collectionService.OrderAlbumsAsync(albums, albumOrder);
 
                 // Create new ObservableCollection
-                ObservableCollection<AlbumViewModel> albumViewModels = null;
-                if (this.searchService.SearchText == string.Empty) {
-                    if (!loveOnly)
-                    {
-                        if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
-                        {
-                            albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums.Where(x => x.DateLastPlayed.HasValue)); // maybe create option in settings to show non-played albums even when sorted by dateLastPlayed
-                        }
-                        else
-                        {
-                            albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums);
-                        }
-                    }
-                    else
-                    {
-                        if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
-                        {
-                            albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums.Where(x => x.AlbumLove == true && x.DateLastPlayed.HasValue));
-                        }
-                        else
-                        {
-                            albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums.Where(x => x.AlbumLove == true));
-                        }
-                    }
-                } else
-                {
-                    albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums);
-                }
+                var albumViewModels = new ObservableCollection<AlbumViewModel>(orderedAlbums);
 
                 // Unbind to improve UI performance
                 this.ClearAlbums();
@@ -517,9 +512,19 @@ namespace Dopamine.ViewModels.Common.Base
             {
                 this.SelectedAlbums = new List<AlbumViewModel>();
 
-                foreach (AlbumViewModel item in (IList)parameter)
+                IList selectedAlbums = (IList)parameter;
+
+                foreach (AlbumViewModel item in selectedAlbums)
                 {
                     this.SelectedAlbums.Add(item);
+                }
+
+                if (selectedAlbums == null || selectedAlbums.Count == 0)
+                {
+                    lastAlbumsSelectNoneAlbumOrder = this.AlbumOrder;
+                } else
+                {
+                    albumsSelectNoneEnabled = false;
                 }
             }
         }
@@ -536,20 +541,6 @@ namespace Dopamine.ViewModels.Common.Base
 
         protected async override Task FilterLists()
         {
-            if (this.searchService.SearchText == string.Empty) // if the search text became empty, can re-apply filters (for example: love only, last played)
-            {
-                await this.FillListsAsync();
-
-                return; // don't need to call "View.Refresh();" when FillListsAsync() will do that already
-            } else if (this.searchService.LastSearchText == string.Empty) // if the search text was empty, but is now populated, search for everything, no filters.
-            {
-                await this.GetAlbumsCommonAsync(this.albumsHolder, this.AlbumOrder);
-                await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
-
-                return; // don't need to call "View.Refresh();" when GetAlbumsCommonAsync() will do that already
-            }
-
-
             Application.Current.Dispatcher.Invoke(() =>
             {
                 // Albums
@@ -630,11 +621,13 @@ namespace Dopamine.ViewModels.Common.Base
                     this.AlbumOrder = AlbumOrder.Alphabetical;
                     break;
             }
+
+            if(this.SelectedAlbums == null || this.SelectedAlbums.Count == 0) albumsSelectNoneEnabled = true;
         }
 
         protected async virtual void PlaybackService_PlaybackCountersChanged(IList<PlaybackCounter> counters)
         {
-            if (this.Albums == null || this.AlbumsHolder == null)
+            if (this.Albums == null)
             {
                 return;
             }
@@ -651,48 +644,24 @@ namespace Dopamine.ViewModels.Common.Base
 
             await Task.Run(() =>
             {
-                HashSet<int> albumViewModelsToReorder = new HashSet<int>();
-                HashSet<int> albumViewModelsToAdd = new HashSet<int>();
-
-                for (int i = 0, count = this.AlbumsHolder.Count; i < count; i++)
+                for (int i = 0, count = this.Albums.Count; i < count; i++)
                 {
-                    if (counters.Select(c => c.AlbumKey).Contains(this.AlbumsHolder[i].AlbumKey))
+                    if (counters.Select(c => c.AlbumKey).Contains(this.Albums[i].AlbumKey))
                     {
                         // The UI is only updated if PropertyChanged is fired on the UI thread
-                        PlaybackCounter counter = counters.Where(c => c.AlbumKey.Equals(this.AlbumsHolder[i].AlbumKey)).FirstOrDefault();
-                        Application.Current.Dispatcher.Invoke(() => this.AlbumsHolder[i].UpdateCounters(counter));
+                        PlaybackCounter counter = counters.Where(c => c.AlbumKey.Equals(this.Albums[i].AlbumKey)).FirstOrDefault();
+                        Application.Current.Dispatcher.Invoke(() => this.Albums[i].UpdateCounters(counter));
 
                         if (counter.PlayCountIncremented)
                         {
-                            if (this.Albums.Contains(this.AlbumsHolder[i]))
-                            {
-                                albumViewModelsToReorder.Add(this.Albums.IndexOf(this.AlbumsHolder[i]));
-                            }
-                            else
-                            {
-                                albumViewModelsToAdd.Add(i);
-                            }
+                            Application.Current.Dispatcher.Invoke(() => this.Albums.Move(i, 0));
                         }
                     }
                 }
 
-
                 if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        foreach (int i in albumViewModelsToReorder)
-                        {
-                            this.Albums.Move(i, 0);
-                        }
-                        foreach (int i in albumViewModelsToAdd)
-                        {
-                            this.Albums.Insert(0, this.AlbumsHolder[i]);
-                        }
-
-                        // Update count
-                        this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count();
-                    });
+                    Application.Current.Dispatcher.Invoke(() => this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count()); // Update count
                 }
             });
         }
@@ -701,14 +670,14 @@ namespace Dopamine.ViewModels.Common.Base
         {
             base.MetadataService_AlbumLoveChangedAsync(e);
 
-            if (this.AlbumsHolder == null)
+            if (this.Albums == null)
             {
                 return;
             }
 
             await Task.Run(() =>
             {
-                foreach (AlbumViewModel vm in this.AlbumsHolder)
+                foreach (AlbumViewModel vm in this.Albums)
                 {
                     if (vm.AlbumKey.Equals(e.AlbumKey))
                     {

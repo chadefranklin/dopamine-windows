@@ -1,5 +1,6 @@
 ﻿using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Base;
+using Dopamine.Core.Extensions;
 using Dopamine.Core.Utils;
 using Dopamine.Data;
 using Dopamine.Services.Collection;
@@ -83,7 +84,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
 
         protected override IList<AlbumViewModel> GetSelectiveSelectedAlbums()
         {
-            IList<AlbumViewModel> albumViewModels = (this.SelectedAlbums == null || this.SelectedAlbums.Count == 0) ? this.Albums : this.SelectedAlbums;
+            IList<AlbumViewModel> albumViewModels = (this.SelectedAlbums == null || this.SelectedAlbums.Count == 0) ? (this.AlbumsCvs != null ? this.AlbumsCvs.View.Cast<AlbumViewModel>().ToList() : this.SelectedAlbums) : this.SelectedAlbums;
             return albumViewModels;
         }
 
@@ -100,7 +101,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             base.ToggleAlbumOrder();
 
             SettingsClient.Set<int>("Ordering", "AlbumsAlbumOrder", (int)this.AlbumOrder);
-            await this.GetAlbumsCommonAsync(this.AlbumsHolder, this.AlbumOrder, true);
+            await this.GetAlbumsCommonAsync(this.Albums, this.AlbumOrder, true);
         }
 
         protected async override Task SetCoversizeAsync(CoverSizeType iCoverSize)
@@ -113,6 +114,8 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
         {
             await this.GetAllAlbumsAsync(this.AlbumOrder, true);
             await this.GetTracksAsync(null, null, SelectiveSelectedAlbums, this.TrackOrder);
+
+            lastAlbumsSelectNoneAlbumOrder = this.AlbumOrder;
         }
 
         protected async override Task EmptyListsAsync()
@@ -136,157 +139,19 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             base.RefreshLanguage();
         }
 
-        protected async override void PlaybackService_PlaybackCountersChanged(IList<PlaybackCounter> counters)
+        protected override bool PassedSecondaryAlbumFilter(AlbumViewModel avm)
         {
-            if (this.Albums == null || this.AlbumsHolder == null)
-            {
-                return;
+            if (!avm.AlbumLove) {
+                return false;
             }
 
-            if (counters == null)
+            switch (this.AlbumOrder)
             {
-                return;
+                case AlbumOrder.ByDateLastPlayed:
+                    return avm.DateLastPlayed.HasValue;
+                default:
+                    return true;
             }
-
-            if (counters.Count == 0)
-            {
-                return;
-            }
-
-            await Task.Run(() =>
-            {
-                HashSet<int> albumViewModelsToReorder = new HashSet<int>();
-                HashSet<int> albumViewModelsToAdd = new HashSet<int>();
-
-                for (int i = 0, count = this.AlbumsHolder.Count; i < count; i++)
-                {
-                    if (counters.Select(c => c.AlbumKey).Contains(this.AlbumsHolder[i].AlbumKey))
-                    {
-                        // The UI is only updated if PropertyChanged is fired on the UI thread
-                        PlaybackCounter counter = counters.Where(c => c.AlbumKey.Equals(this.AlbumsHolder[i].AlbumKey)).FirstOrDefault();
-                        Application.Current.Dispatcher.Invoke(() => this.AlbumsHolder[i].UpdateCounters(counter));
-
-                        if (counter.PlayCountIncremented)
-                        {
-                            if (this.AlbumsHolder[i].AlbumLove || this.searchService.SearchText != string.Empty)
-                            {
-                                if (this.Albums.Contains(this.AlbumsHolder[i]))
-                                {
-                                    albumViewModelsToReorder.Add(this.Albums.IndexOf(this.AlbumsHolder[i]));
-                                }
-                                else
-                                {
-                                    albumViewModelsToAdd.Add(i);
-                                }
-                            }
-                        }
-                    }
-                }
-
-
-                if (this.AlbumOrder == AlbumOrder.ByDateLastPlayed)
-                {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        foreach (int i in albumViewModelsToReorder)
-                        {
-                            this.Albums.Move(i, 0);
-                        }
-                        foreach (int i in albumViewModelsToAdd)
-                        {
-                            this.Albums.Insert(0, this.AlbumsHolder[i]);
-                        }
-
-                        // Update count
-                        this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count();
-                    });
-                }
-            });
-        }
-
-        protected async override void MetadataService_AlbumLoveChangedAsync(AlbumLoveChangedEventArgs e)
-        {
-            base.MetadataService_AlbumLoveChangedAsync(e);
-
-            if (this.Albums == null || this.AlbumsHolder == null)
-            {
-                return;
-            }
-
-            if (this.searchService.SearchText != string.Empty) // nothing below should apply when we are searching
-            {
-                return;
-            }
-
-            await Task.Run(() =>
-            {
-                if (e.Love) {
-                    // Insert in correct order rather than calling await this.GetAlbumsCommonAsync(this.AlbumsHolder, this.AlbumOrder, true);
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        AlbumViewModel albumToInsert = this.AlbumsHolder.Where(x => x.AlbumKey == e.AlbumKey).FirstOrDefault();
-
-                        if (albumToInsert == null) return;
-
-                        int insertIndex;
-                        switch (this.AlbumOrder)
-                        {
-                            case AlbumOrder.Alphabetical:
-                                for (insertIndex = 0; insertIndex < this.Albums.Count && FormatUtils.GetSortableString(this.Albums[insertIndex].AlbumTitle).CompareTo(FormatUtils.GetSortableString(albumToInsert.AlbumTitle)) < 0; insertIndex++) ;
-                                this.Albums.Insert(insertIndex, albumToInsert);
-                                break;
-                            case AlbumOrder.ByDateAdded:
-                                for (insertIndex = 0; insertIndex < this.Albums.Count && ((long)this.Albums[insertIndex].DateAdded).CompareTo(albumToInsert.DateAdded) > 0; insertIndex++) ;
-                                this.Albums.Insert(insertIndex, albumToInsert);
-                                break;
-                            case AlbumOrder.ByDateCreated:
-                                for (insertIndex = 0; insertIndex < this.Albums.Count && ((long)this.Albums[insertIndex].DateFileCreated).CompareTo(albumToInsert.DateFileCreated) > 0; insertIndex++) ;
-                                this.Albums.Insert(insertIndex, albumToInsert);
-                                break;
-                            case AlbumOrder.ByAlbumArtist:
-                                for (insertIndex = 0; insertIndex < this.Albums.Count && FormatUtils.GetSortableString(this.Albums[insertIndex].AlbumArtist).CompareTo(FormatUtils.GetSortableString(albumToInsert.AlbumArtist)) < 0; insertIndex++) ;
-                                this.Albums.Insert(insertIndex, albumToInsert);
-                                break;
-                            case AlbumOrder.ByYearAscending:
-                                for (insertIndex = 0; insertIndex < this.Albums.Count && this.Albums[insertIndex].SortYear.CompareTo(albumToInsert.SortYear) < 0; insertIndex++) ;
-                                this.Albums.Insert(insertIndex, albumToInsert);
-                                break;
-                            case AlbumOrder.ByYearDescending:
-                                for (insertIndex = 0; insertIndex < this.Albums.Count && this.Albums[insertIndex].SortYear.CompareTo(albumToInsert.SortYear) > 0; insertIndex++) ;
-                                this.Albums.Insert(insertIndex, albumToInsert);
-                                break;
-                            case AlbumOrder.ByDateLastPlayed:
-                                for (insertIndex = 0; insertIndex < this.Albums.Count && ((long)this.Albums[insertIndex].DateLastPlayed).CompareTo(albumToInsert.DateLastPlayed) > 0; insertIndex++) ;
-                                this.Albums.Insert(insertIndex, albumToInsert);
-                                break;
-                            default:
-                                // Alphabetical
-                                for (insertIndex = 0; insertIndex < this.Albums.Count && FormatUtils.GetSortableString(this.Albums[insertIndex].AlbumTitle).CompareTo(FormatUtils.GetSortableString(albumToInsert.AlbumTitle)) < 0; insertIndex++) ;
-                                this.Albums.Insert(insertIndex, albumToInsert);
-                                break;
-                        }
-
-                        // Update count
-                        this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count();
-                    });
-                } else
-                {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        for (int i = 0, count = this.Albums.Count; i < count; i++)
-                        {
-                            if (this.Albums[i].AlbumKey.Equals(e.AlbumKey))
-                            {
-                                this.Albums.RemoveAt(i);
-                                break;
-                            }
-                        }
-
-                        // Update count
-                        this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count();
-                    });
-                }
-            });
         }
     }
 }

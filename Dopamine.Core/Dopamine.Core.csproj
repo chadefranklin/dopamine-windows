@@ -122,6 +122,7 @@
     <Compile Include="Extensions\IDropInfoExtensions.cs" />
     <Compile Include="Extensions\ListExtensions.cs" />
     <Compile Include="Extensions\LongExtensions.cs" />
+    <Compile Include="Extensions\ObservableCollectionExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Base\ProductInformation.cs" />
     <Compile Include="Extensions\WindowExtensions.cs" />
