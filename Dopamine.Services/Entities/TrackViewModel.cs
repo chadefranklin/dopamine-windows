@@ -87,7 +87,7 @@ namespace Dopamine.Services.Entities
 
         public string AlbumKey => this.Track.AlbumKey;
 
-        public string AlbumKeyGrouper => AlbumKey + DiscNumber;
+        public string AlbumKeyGrouper => AlbumKey + (this.Track.DiscNumber.HasValueLargerThan(0) ? $" ({this.Track.DiscNumber})" : string.Empty);
 
         public string ArtistName => !string.IsNullOrEmpty(this.Track.Artists) ? DataUtils.GetCommaSeparatedColumnMultiValue(this.Track.Artists) : ResourceUtils.GetString("Language_Unknown_Artist");
 
