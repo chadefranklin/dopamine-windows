@@ -380,7 +380,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             base.ToggleAlbumOrder();
 
             SettingsClient.Set<int>("Ordering", "GenresAlbumOrder", (int)this.AlbumOrder);
-            await this.GetAlbumsCommonAsync(this.Albums, this.AlbumOrder);
+            await this.GetAlbumsCommonAsync(this.AlbumsHolder, this.AlbumOrder);
         }
 
         protected async override Task SetCoversizeAsync(CoverSizeType coverSize)
