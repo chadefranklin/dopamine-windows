@@ -79,6 +79,8 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
 
             // Cover size
             this.SetCoversizeAsync((CoverSizeType)SettingsClient.Get<int>("CoverSizes", "AlbumsCoverSize"));
+
+            this.loveOnly = true;
         }
 
         private async Task ToggleTrackOrderAsync()

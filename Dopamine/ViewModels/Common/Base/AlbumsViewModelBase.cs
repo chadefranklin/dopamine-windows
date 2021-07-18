@@ -51,6 +51,7 @@ namespace Dopamine.ViewModels.Common.Base
         private double albumWidth;
         private double albumHeight;
         private CoverSizeType selectedCoverSize;
+        protected bool loveOnly;
 
         public DelegateCommand ToggleAlbumOrderCommand { get; set; }
 
@@ -520,6 +521,23 @@ namespace Dopamine.ViewModels.Common.Base
 
         protected async override Task FilterLists()
         {
+            if (this.searchService.SearchText == string.Empty) // if the search text became empty, can re-apply filters (for example: love only, last played)
+            {
+                await this.GetAlbumsCommonAsync(this.albumsHolder, this.AlbumOrder, this.loveOnly);
+
+                base.FilterLists();
+
+                return; // don't need to call "View.Refresh();" when FillListsAsync() will do that already
+            }
+            else if (this.searchService.LastSearchText == string.Empty) // if the search text was empty, but is now populated, search for everything, no filters.
+            {
+                await this.GetAlbumsCommonAsync(this.albumsHolder, this.AlbumOrder, this.loveOnly);
+
+                base.FilterLists();
+
+                return; // don't need to call "View.Refresh();" when GetAlbumsCommonAsync() will do that already
+            }
+
             Application.Current.Dispatcher.Invoke(() =>
             {
                 // Albums
