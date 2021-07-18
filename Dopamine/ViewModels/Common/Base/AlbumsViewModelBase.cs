@@ -527,7 +527,7 @@ namespace Dopamine.ViewModels.Common.Base
 
                 base.FilterLists();
 
-                return; // don't need to call "View.Refresh();" when FillListsAsync() will do that already
+                return; // don't need to call "View.Refresh();" when GetAlbumsCommonAsync() will do that already
             }
             else if (this.searchService.LastSearchText == string.Empty) // if the search text was empty, but is now populated, search for everything, no filters.
             {
@@ -671,6 +671,8 @@ namespace Dopamine.ViewModels.Common.Base
                     {
                         foreach (int i in albumViewModelsToReorder)
                         {
+                            if (i == 0) continue; // without this, if the album that is moved is selected, it will unselect it for some reason.
+
                             this.Albums.Move(i, 0);
                         }
                         foreach (int i in albumViewModelsToAdd)

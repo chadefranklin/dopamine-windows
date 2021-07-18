@@ -186,6 +186,8 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                     {
                         foreach (int i in albumViewModelsToReorder)
                         {
+                            if (i == 0) continue; // without this, if the album that is moved is selected, it will unselect it for some reason.
+
                             this.Albums.Move(i, 0);
                         }
                         foreach (int i in albumViewModelsToAdd)
