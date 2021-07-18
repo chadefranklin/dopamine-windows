@@ -639,8 +639,8 @@ namespace Dopamine.ViewModels.Common.Base
 
             await Task.Run(() =>
             {
-                HashSet<int> albumViewModelsToReorder = new HashSet<int>();
-                HashSet<int> albumViewModelsToAdd = new HashSet<int>();
+                List<int> albumViewModelsToReorder = new List<int>();
+                List<int> albumViewModelsToAdd = new List<int>();
 
                 for (int i = 0, count = this.AlbumsHolder.Count; i < count; i++)
                 {
@@ -671,13 +671,22 @@ namespace Dopamine.ViewModels.Common.Base
                     {
                         foreach (int i in albumViewModelsToReorder)
                         {
-                            if (i == 0) continue; // without this, if the album that is moved is selected, it will unselect it for some reason.
+                            int moveToIndex;
+                            int count = this.Albums.Count;
 
-                            this.Albums.Move(i, 0);
+                            for (moveToIndex = 0; moveToIndex < count && ((long)this.Albums[moveToIndex].DateLastPlayed).CompareTo(this.Albums[i].DateLastPlayed) > 0; moveToIndex++) ;
+                            if (i != moveToIndex)
+                            {
+                                this.Albums.Move(i, moveToIndex);
+                            }
                         }
                         foreach (int i in albumViewModelsToAdd)
                         {
-                            this.Albums.Insert(0, this.AlbumsHolder[i]);
+                            int insertIndex;
+                            int count = this.Albums.Count;
+
+                            for (insertIndex = 0; insertIndex < count && ((long)this.Albums[insertIndex].DateLastPlayed).CompareTo(this.AlbumsHolder[i].DateLastPlayed) > 0; insertIndex++) ;
+                            this.Albums.Insert(insertIndex, this.AlbumsHolder[i]);
                         }
 
                         // Update count
